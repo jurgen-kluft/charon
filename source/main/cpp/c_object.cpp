@@ -10,8 +10,8 @@ namespace ncore
 {
     namespace ngd
     {
-        const fileid_t fileid_t::sInvalid;
-        const locstr_t locstr_t::sInvalid;
+        const fileid_t sInvalidFileId = -1;
+        const locstr_t sInvalidLocStr = -1;
 
         const vec3f_t  vec3f_t::sZero;
         const vec3fx_t vec3fx_t::sZero;
@@ -476,13 +476,13 @@ namespace ncore
 #ifndef _SUBMISSION
                 log_t::writeLine(log_t::WARNING, "Warning: getfileid(membername_t name): member with name {0} does not exist", va_list_t(va_t(name.getName())));
 #endif
-                return fileid_t::sInvalid;
+                return sInvalidFileId;
             }
 #ifndef _SUBMISSION
             if (m->is_fileid() == false)
             {
                 log_t::writeLine(log_t::WARNING, "Warning: getfileid(membername_t name): is not a fileId.", va_list_t(va_t(name.getName())));
-                return fileid_t::sInvalid;
+                return sInvalidFileId;
             }
 #endif
             return fileid_t(m->value());
@@ -1160,7 +1160,7 @@ namespace ncore
 #ifndef _SUBMISSION
                 log_t::writeLine(log_t::WARNING, "Warning: getlocstr(membername_t name): member with name {0} does not exist", va_list_t(va_t(name.getName())));
 #endif
-                return locstr_t::sInvalid;
+                return sInvalidLocStr;
             }
 #ifndef _SUBMISSION
             if (m->is_locstr_array() == false)
@@ -1185,13 +1185,13 @@ namespace ncore
 #ifndef _SUBMISSION
                 log_t::writeLine(log_t::WARNING, "Warning: getfileid(membername_t name): member with name {0} does not exist", va_list_t(va_t(name.getName())));
 #endif
-                return fileid_t::sInvalid;
+                return sInvalidFileId;
             }
 #ifndef _SUBMISSION
             if (m->is_fileid_array() == false)
             {
                 log_t::writeLine(log_t::WARNING, "Warning: getfileid(membername_t name, int index): is not a fileid_t[]", va_list_t(va_t(name.getName())));
-                return fileid_t();
+                return sInvalidFileId;
             }
             else
 #endif

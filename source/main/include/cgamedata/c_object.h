@@ -45,47 +45,13 @@ namespace ncore
             const char* m_name;
         };
 
-        class color_t
-        {
-        public:
-            color_t() : m_color(0) {}
-            color_t(s32 color_t) : m_color(color_t) {}
-            color_t(const color_t& color_t) : m_color(color_t.m_color) {}
+        typedef s32 color_t;
 
-            s32 gexcolor() const { return m_color; }
-                operator s32() const { return m_color; }
+        static const color_t sBlackColor;
+        static const color_t sWhiteColor;
 
-            bool operator==(const color_t& color_t) const { return m_color == color_t.m_color; }
-            bool operator!=(const color_t& color_t) const { return m_color != color_t.m_color; }
-
-        public:
-            static const color_t _tsBlack;
-            static const color_t _tsWhite;
-
-        protected:
-            s32 m_color;
-        };
-
-        class fileid_t
-        {
-        public:
-            fileid_t() : mId(-1) {}
-            fileid_t(s32 id) : mId(id) {}
-            fileid_t(const fileid_t& fileId) : mId(fileId.mId) {}
-
-            s32 getId() const { return mId; }
-
-            operator s32() const { return mId; }
-
-            bool operator==(const fileid_t& file) const { return mId == file.mId; }
-            bool operator!=(const fileid_t& file) const { return mId != file.mId; }
-
-        public:
-            static const fileid_t sInvalid;
-
-        protected:
-            s32 mId;
-        };
+        typedef s32           fileid_t;
+        static const fileid_t sInvalidFileId;
 
         class fileid_list_t
         {
@@ -109,25 +75,8 @@ namespace ncore
             fileid_t const* m_array;
         };
 
-        class locstr_t
-        {
-        public:
-            locstr_t() : mId(-1) {}
-            locstr_t(s32 id) : mId(id) {}
-            locstr_t(const locstr_t& lstring) : mId(lstring.mId) {}
-
-            s32 getId() const { return mId; }
-                operator s32() const { return mId; }
-
-            bool operator==(const locstr_t& lstring) const { return mId == lstring.mId; }
-            bool operator!=(const locstr_t& lstring) const { return mId != lstring.mId; }
-
-        public:
-            static const locstr_t sInvalid;
-
-        protected:
-            s32 mId;
-        };
+        typedef s32           locstr_t;
+        static const locstr_t sInvalidLocStr;
 
         class vec3f_t
         {

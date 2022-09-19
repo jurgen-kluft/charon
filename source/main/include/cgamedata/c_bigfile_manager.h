@@ -6,12 +6,13 @@
 #endif
 
 #include "cfile/c_file.h"
-#include "cgamedata/c_object.h"
 
 namespace ncore
 {
     namespace ngd
     {
+        typedef s32 fileid_t;
+
         struct MFT;
         struct FDB;
         struct BigFile;
