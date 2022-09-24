@@ -7,7 +7,7 @@ This data can be generated using ``https://github.com/jurgen-kluft/BuildSystem.C
 
 - bool, s8, u8, s16, u16, s32, u32, s64, u64, f32
 - vec2f, vec3f, vec4f, mat3f, mat4f
-- fileid_t, fileid_list_t
+- fileid_t
 - locstr_t
 - ``string*``
 - color_t
