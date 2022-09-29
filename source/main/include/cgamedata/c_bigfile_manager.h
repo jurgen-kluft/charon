@@ -11,7 +11,7 @@ namespace ncore
 {
     namespace ngd
     {
-        typedef s32 fileid_t;
+        typedef u64 fileid_t;
 
         struct MFT;
         struct FDB;

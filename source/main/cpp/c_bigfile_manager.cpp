@@ -6,51 +6,18 @@ namespace ncore
 {
     namespace ngd
     {
-        struct fileoffset_array_t
-        {
-        public:
-            inline int size() const { return mCount; }
-            inline int at(int index) const { return ((int*)((u32)this + sizeof(fileoffset_array_t)))[index]; }
-
-        private:
-            int mCount;
-        };
-
         struct fileinfo_t
         {
-            inline u32 getfileOffsetCount() const
-            {
-                if (isValid() && isArray())
-                {
-                    fileoffset_array_t* array = (fileoffset_array_t*)(fileOffset());
-                    return array->size();
-                }
-                return 1;
-            }
-
-            inline u64 getfileOffset(void* base, int index) const
-            {
-                if (isValid() && isArray())
-                {
-                    void* const         offsets = (void*)((ptr_t)base + fileOffset());
-                    fileoffset_array_t* array   = (fileoffset_array_t*)(offsets);
-                    return (u64)array->at(index);
-                }
-                return (u64)fileOffset();
-            }
+            inline u64 getfileOffset() const { return (u64)fileOffset(); }
             inline u32 getfileSize() const { return fileSize(); }
 
             inline bool isValid() const { return (mFileOffset != 0xffffffff); }
-            inline bool isArray() const { return (mFileOffset & 0x80000000) != 0 ? true : false; }
             inline bool isCompressed() const { return (mFileSize & 0x80000000) != 0 ? true : false; }
 
             inline u32 fileSize() const { return mFileSize & 0x7FFFFFFF; }
-            inline u32 fileOffset() const { return mFileOffset & 0x7FFFFFFF; }
+            inline u32 fileOffset() const { return mFileOffset; }
 
-            //  0xffffffff = Invalid file offset
-            //  highest bit
-            //  1 = It's an offset to an array of file offsets
-            //  0 = It's a single file offset
+        private:
             u32 mFileOffset;
             u32 mFileSize;
         };
@@ -103,7 +70,6 @@ namespace ncore
 
             mBigfile = file_open(bigfileFilename);
 
-            // LotManager::sDetectCardRemoval();
             if (mBigfile != nullptr)
             {
                 filehandle_t gdt = file_open(bigTocFilename);
@@ -218,7 +184,7 @@ namespace ncore
             if (f == nullptr)
                 return -1;
 
-            u64 const seekpos = f->getfileOffset((void*)mMFT, 0) + offset;
+            u64 const seekpos = f->getfileOffset() + offset;
             mBigfile->seek(seekpos);
 
             const int numBytesRead = (int)(mBigfile->read(destination, size));

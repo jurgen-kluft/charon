@@ -53,28 +53,6 @@ namespace ncore
         typedef u64           fileid_t;
         static const fileid_t sInvalidFileId;
 
-        class fileid_list_t
-        {
-        public:
-            fileid_list_t() {}
-
-            s32      size() const { return m_length; }
-            fileid_t at(s32 index) const
-            {
-                ASSERT(index < m_length);
-                return m_array[index];
-            }
-            fileid_t operator[](s32 index) const
-            {
-                ASSERT(index < m_length);
-                return m_array[index];
-            }
-
-        private:
-            s32             m_length;
-            fileid_t const* m_array;
-        };
-
         typedef s32           locstr_t;
         static const locstr_t sInvalidLocStr;
 
