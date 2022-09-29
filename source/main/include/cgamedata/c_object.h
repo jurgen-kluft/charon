@@ -50,7 +50,7 @@ namespace ncore
         static const color_t sBlackColor;
         static const color_t sWhiteColor;
 
-        typedef s32           fileid_t;
+        typedef u64           fileid_t;
         static const fileid_t sInvalidFileId;
 
         class fileid_list_t
