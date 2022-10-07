@@ -1,6 +1,10 @@
-#include "cgamedata/c_bigfile_manager.h"
+#include "cbase/c_allocator.h"
 #include "cbase/c_log.h"
 #include "cbase/c_integer.h"
+#include "cfile/c_file.h"
+
+#include "cgamedata/c_bigfile_manager.h"
+#include "cgamedata/c_object.h"
 
 namespace ncore
 {
@@ -8,89 +12,111 @@ namespace ncore
     {
         struct fileinfo_t
         {
-            inline u64 getfileOffset() const { return (u64)fileOffset(); }
-            inline u32 getfileSize() const { return fileSize(); }
+            inline u64 getFileOffset() const { return (u64)fileOffset(); }
+            inline u32 getFileSize() const { return fileSize(); }
 
-            inline bool isValid() const { return (mFileOffset != 0xffffffff); }
+            inline bool isValid() const { return (mFileSize != 0xffffffff); }
             inline bool isCompressed() const { return (mFileSize & 0x80000000) != 0 ? true : false; }
 
-            inline u32 fileSize() const { return mFileSize & 0x7FFFFFFF; }
-            inline u32 fileOffset() const { return mFileOffset; }
+            inline bool               hasFileIdArray() const { return (mFileSize & 0x40000000) != 0 ? true : false; }
+            inline const array_t<u32> getFileIdArray(const void* base)
+            {
+                u32 const* data = ((u32 const*)base + mFileOffset);
+                return array_t<u32>(data[0], data + 1);
+            }
 
         private:
+            inline u32 fileSize() const { return mFileSize & ~0xC0000000; }
+            inline u64 fileOffset() const { return ((u64)mFileOffset << 5); }
+
             u32 mFileOffset;
             u32 mFileSize;
         };
 
-        ///         Int32 - Flags
-        ///         Int32 - Number of entries
-        ///         Table - Entries
-        ///             Int32-OffsetInArchive, Int32-SizeOfFile
+        // Header
+        //     Int32: Total number of FileId's
+        //     Int32: Number of MFT's
+        //     Array
+        //       {Int32:Number of entries, Int32:Offset to TOC, Int32:Base offset in Bigfile Archive}
+        //     End
+
+        // Layout of one MFT
+        //     Array: FileId's
+        //       {Int32:FileOffset in Archive, Int32:Size of file}
+        //     End
+        //     Block (Containing dynamic array's)
+        //       Many {Int32:Length, FileId[]}
+        //     End
+        // End
+
         struct MFT
         {
-            const fileinfo_t* at(int index) const;
-            int               mNumEntries;
+            fileinfo_t   getFileInfo(const void* base, s32 index) const;
+            s32          getFileIdCount(s32 index) const;
+            array_t<u32> getFileIdArray(s32 index) const;
+
+            u32 mNumEntries;         // How many entries this TOC has
+            u32 mTocOffset;          // Where this TOC starts
+            u32 mFileDataBaseOffset; // 
         };
 
-        const fileinfo_t* MFT::at(int index) const
+        fileinfo_t MFT::getFileInfo(const void* base, s32 index) const
         {
-            const fileinfo_t* table = (const fileinfo_t*)((int)this + sizeof(MFT));
-            return table + index;
+            const fileinfo_t* table = (const fileinfo_t*)((ptr_t)base + mTocOffset);
+            return table[index];
         }
 
-        ///         Table - Filename offsets
-        ///         Table - Filenames
-        ///             Char[] - Filename
-        ///
+        // Table - Filename offsets
+        // Table - Filenames
+        //     Char[] - Filename
+        //
         struct FDB
         {
-            const char* filename(int index) const;
-            int         mNumEntries;
+            const char* filename(s32 index) const;
+            s32         mNumEntries;
         };
 
-        const char* FDB::filename(int index) const
+        const char* FDB::filename(s32 index) const
         {
-            const int* offset = (const int*)((int)this + sizeof(FDB));
-            return (const char*)((int)this + sizeof(FDB) + sizeof(int) * mNumEntries + offset[index]);
+            const s32* offset = (const s32*)((s32)this + sizeof(FDB));
+            return (const char*)((s32)this + sizeof(FDB) + sizeof(s32) * mNumEntries + offset[index]);
         }
 
         //         The .arc file containing all the files, uses the .mft file to obtain the
         //         offset in the .arc file for a file.
 
-        BigFileManager::BigFileManager()
+        BigFileManager::BigFileManager(alloc_t* allocator)
         {
+            mAlloc   = allocator;
             mMFT     = nullptr;
             mFDB     = nullptr;
-            mBigfile = filehandle_t();
+            mBigfile = file_handle_t();
         }
 
         bool BigFileManager::open(const char* bigfileFilename, const char* bigTocFilename, const char* bigDatabaseFilename)
         {
             close();
 
-            mBigfile = file_open(bigfileFilename);
-
-            if (mBigfile != nullptr)
+            mBigfile = file_open(bigfileFilename, file_mode_t::FILE_MODE_READ);
+            if (mBigfile.isValid())
             {
-                filehandle_t gdt = file_open(bigTocFilename);
-                if (gdt != nullptr)
+                file_handle_t gdt = file_open(bigTocFilename, file_mode_t::FILE_MODE_READ);
+                if (gdt.isValid())
                 {
-                    const int fileSize = (int)file_size(gdt);
-                    mMFT               = (MFT*)Memory::alloc(math::align(fileSize, 4));
+                    const s32 fileSize = (s32)file_size(gdt);
+                    mMFT               = (MFT*)mAlloc->allocate(math::align(fileSize, 4));
                     file_read(gdt, (u8*)mMFT, (u32)fileSize);
                     file_close(gdt);
-                    delete gdt;
                 }
 
 #if !defined(_SUBMISSION)
-                filehandle_t namesFile = file_open(bigDatabaseFilename);
-                if (namesFile != nullptr)
+                file_handle_t namesFile = file_open(bigDatabaseFilename, file_mode_t::FILE_MODE_READ);
+                if (namesFile.isValid())
                 {
-                    const int size = (int)file_size(namesFile);
-                    mFDB           = (FDB*)new char[math::align(size, 4)];
+                    const s32 size = (s32)file_size(namesFile);
+                    mFDB           = (FDB*)mAlloc->allocate(math::align(size, 4));
                     file_read(namesFile, (u8*)mFDB, (u32)size);
                     file_close(namesFile);
-                    delete namesFile;
                 }
                 else
                 {
@@ -108,28 +134,31 @@ namespace ncore
 
         void BigFileManager::close()
         {
-            if (mBigfile != nullptr)
+            if (mBigfile.isValid())
             {
-                mBigfile->close();
-                UMemory::SafeDelete(mBigfile);
+                file_close(mBigfile);
                 mBigfile = nullptr;
             }
 
-            Memory::free(mMFT);
+            mAlloc->deallocate(mMFT);
             mMFT = nullptr;
 
 #if !defined(_SUBMISSION)
-            Memory::free(mFDB);
+            mAlloc->deallocate(mFDB);
             mFDB = nullptr;
 #endif
         }
 
-        bool BigFileManager::exists(fileid_t id) const { return mMFT->at(id) != nullptr ? true : false; }
+        bool BigFileManager::exists(fileid_t id) const
+        {
+            fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
+            return f.isValid();
+        }
 
         bool BigFileManager::isCompressed(fileid_t id) const
         {
-            const fileinfo_t* f = mMFT->at(id);
-            return f->isCompressed();
+            fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
+            return f.isCompressed();
         }
 
         const char* BigFileManager::filename(fileid_t id) const
@@ -142,10 +171,10 @@ namespace ncore
 #endif
         }
 
-        int BigFileManager::size(fileid_t id) const
+        s32 BigFileManager::size(fileid_t id) const
         {
-            const fileinfo_t* f = mMFT->at(id);
-            return f->fileSize();
+            fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
+            return f.getFileSize();
         }
 
         bool BigFileManager::isEqual(fileid_t firstId, fileid_t secondId) const
@@ -157,37 +186,37 @@ namespace ncore
             }
             else
             {
-                const fileinfo_t* f1 = mMFT->at(firstId);
-                const fileinfo_t* f2 = mMFT->at(secondId);
-                if (f1 != nullptr && f2 != nullptr)
+                fileinfo_t f1 = mMFT->getFileInfo(mBasePtr, firstId);
+                fileinfo_t f2 = mMFT->getFileInfo(mBasePtr, secondId);
+                if (f1.isValid() && f2.isValid())
                 {
-                    res = f1->fileOffset() == f2->fileOffset();
+                    res = f1.getFileOffset() == f2.getFileOffset();
                 }
             }
             return res;
         }
 
-        int BigFileManager::read(fileid_t id, void* destination)
+        s32 BigFileManager::read(fileid_t id, void* destination) const
         {
-            const fileinfo_t* f = mMFT->at(id);
-            if (f == nullptr)
+            fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
+            if (!f.isValid())
                 return -1;
 
-            return read(id, 0, f->fileSize(), destination);
+            return read(id, 0, f.getFileSize(), destination);
         }
 
-        int BigFileManager::read(fileid_t id, int size, void* destination) { return read(id, 0, size, destination); }
+        s32 BigFileManager::read(fileid_t id, s32 size, void* destination) const { return read(id, 0, size, destination); }
 
-        int BigFileManager::read(fileid_t id, int offset, int size, void* destination)
+        s32 BigFileManager::read(fileid_t id, s32 offset, s32 size, void* destination) const
         {
-            const fileinfo_t* f = mMFT->at(id);
-            if (f == nullptr)
+            fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
+            if (!f.isValid())
                 return -1;
 
-            u64 const seekpos = f->getfileOffset() + offset;
-            mBigfile->seek(seekpos);
+            const s64 seekpos = f.getFileOffset() + offset;
+            file_seek(mBigfile, seekpos, seek_mode_t::SEEK_MODE_BEG);
 
-            const int numBytesRead = (int)(mBigfile->read(destination, size));
+            const s32 numBytesRead = (s32)(file_read(mBigfile, (u8*)destination, size));
 
             return numBytesRead;
         }

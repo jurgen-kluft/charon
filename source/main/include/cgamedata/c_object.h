@@ -2,7 +2,7 @@
 #define __CGAMEDATA_OBJECT_H__
 #include "cbase/c_target.h"
 #ifdef USE_PRAGMA_ONCE
-#    pragma once
+#pragma once
 #endif
 
 #include "cbase/c_debug.h"
@@ -19,8 +19,16 @@ namespace ncore
         template <class T> class array_t
         {
         public:
-            array_t() : m_length(0), m_array(NULL) {}
-            array_t(const s32 size, T const* data) : m_length(size), m_array(data) {}
+            array_t()
+                : m_length(0)
+                , m_array(NULL)
+            {
+            }
+            array_t(const s32 size, T const* data)
+                : m_length(size)
+                , m_array(data)
+            {
+            }
 
             s32      size() const { return m_length; }
             const T& operator[](s32 index) const
@@ -37,7 +45,10 @@ namespace ncore
         class membername_t
         {
         public:
-            explicit membername_t(const char* name) : m_name(name) {}
+            explicit membername_t(const char* name)
+                : m_name(name)
+            {
+            }
 
             const char* getName() const { return m_name; }
 

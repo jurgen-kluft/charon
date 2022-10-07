@@ -2,13 +2,15 @@
 #define __CGAMEDATA_BIG_FILE_MANAGER_H__
 #include "cbase/c_target.h"
 #ifdef USE_PRAGMA_ONCE
-#    pragma once
+#pragma once
 #endif
 
 #include "cfile/c_file.h"
 
 namespace ncore
 {
+    class alloc_t;
+
     namespace ngd
     {
         typedef u64 fileid_t;
@@ -20,6 +22,8 @@ namespace ncore
         class BigFileManager
         {
         public:
+            BigFileManager(alloc_t* allocator);
+
             bool open(const char* bigfileFilename, const char* bigTocFilename, const char* bigDatabaseFilename);
             void close();
 
@@ -29,16 +33,29 @@ namespace ncore
 
             const char* filename(fileid_t id) const; ///< Return Filename associated with @hash
 
-            int size(fileid_t id) const;                                    ///< Return size of file
-            int read(fileid_t id, void* destination);                       ///< Read whole file in destination
-            int read(fileid_t id, int size, void* destination);             ///< Read part of file header in destination
-            int read(fileid_t id, int offset, int size, void* destination); ///< Read part of file in destination
+            s32 size(fileid_t id) const;                                          ///< Return size of file
+            s32 read(fileid_t id, void* destination) const;                       ///< Read whole file in destination
+            s32 read(fileid_t id, s32 size, void* destination) const;             ///< Read part of file header in destination
+            s32 read(fileid_t id, s32 offset, s32 size, void* destination) const; ///< Read part of file in destination
 
         protected:
-            MFT*         mMFT;     ///< The .gdt file
-            FDB*         mFDB;     ///< The .gdf file
-            filehandle_t mBigfile; ///< The .gda file
+            alloc_t*      mAlloc;
+            void*         mBasePtr;
+            MFT*          mMFT;     ///< The .gdt file
+            FDB*          mFDB;     ///< The .gdf file
+            file_handle_t mBigfile; ///< The .gda file
         };
+
+        // So the final bigfile will become something like this:
+        class NewBigFileManager
+        {
+        public:
+            u32   mNumberOfTotalFileIds;
+            u32   mNumberOfMFT;
+            MFT** mArrayOfMFT;
+            FDB** mArrayOfFDB; // In DEBUG mode if you want to know the filename of a fileid_t
+        };
+
     } // namespace ngd
 } // namespace ncore
 
