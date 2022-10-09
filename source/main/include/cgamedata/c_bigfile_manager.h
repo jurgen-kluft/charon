@@ -15,14 +15,15 @@ namespace ncore
     {
         typedef u64 fileid_t;
 
-        struct MFT;
-        struct FDB;
-        struct BigFile;
+        struct mft_t;
+        struct fdb_t;
 
-        class BigFileManager
+        class bigfile_t
         {
         public:
-            BigFileManager(alloc_t* allocator);
+            bigfile_t(alloc_t* allocator);
+
+            static bigfile_t* instance;
 
             bool open(const char* bigfileFilename, const char* bigTocFilename, const char* bigDatabaseFilename);
             void close();
@@ -31,7 +32,7 @@ namespace ncore
             bool isEqual(fileid_t firstId, fileid_t secondId) const; ///< Return True if both fileIds reference the same physical file
             bool isCompressed(fileid_t id) const;
 
-            const char* filename(fileid_t id) const; ///< Return Filename associated with @hash
+            const char* filename(fileid_t id) const; ///< Return Filename associated with file id
 
             s32 size(fileid_t id) const;                                          ///< Return size of file
             s32 read(fileid_t id, void* destination) const;                       ///< Read whole file in destination
@@ -41,19 +42,22 @@ namespace ncore
         protected:
             alloc_t*      mAlloc;
             void*         mBasePtr;
-            MFT*          mMFT;     ///< The .gdt file
-            FDB*          mFDB;     ///< The .gdf file
+            mft_t*        mMFT;     ///< The .gdt file
+            fdb_t*        mFDB;     ///< The .gdf file
             file_handle_t mBigfile; ///< The .gda file
         };
 
         // So the final bigfile will become something like this:
+        // NOTE: Localization data should be packed into a specific Bigfile, and the language object
+        //       should have a FileId to each defined language. If the language is not available it
+        //       can redirect to English.
         class NewBigFileManager
         {
         public:
-            u32   mNumberOfTotalFileIds;
-            u32   mNumberOfMFT;
-            MFT** mArrayOfMFT;
-            FDB** mArrayOfFDB; // In DEBUG mode if you want to know the filename of a fileid_t
+            u32     mNumberOfTotalFileIds;
+            u32     mNumberOfMFT;
+            mft_t** mArrayOfMFT;
+            fdb_t** mArrayOfFDB; // In DEBUG mode if you want to know the filename of a fileid_t
         };
 
     } // namespace ngd
