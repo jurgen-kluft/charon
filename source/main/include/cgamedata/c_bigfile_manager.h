@@ -2,7 +2,7 @@
 #define __CGAMEDATA_BIG_FILE_MANAGER_H__
 #include "cbase/c_target.h"
 #ifdef USE_PRAGMA_ONCE
-#pragma once
+#    pragma once
 #endif
 
 #include "cfile/c_file.h"
@@ -51,7 +51,7 @@ namespace ncore
         // NOTE: Localization data should be packed into a specific Bigfile, and the language object
         //       should have a FileId to each defined language. If the language is not available it
         //       can redirect to English.
-        class NewBigFileManager
+        class bigfile2_t
         {
         public:
             u32     mNumberOfTotalFileIds;

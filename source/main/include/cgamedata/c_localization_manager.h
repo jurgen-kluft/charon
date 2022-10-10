@@ -2,10 +2,11 @@
 #define __CGAMEDATA_LANGUAGE_H__
 #include "cbase/c_target.h"
 #ifdef USE_PRAGMA_ONCE
-#pragma once
+#    pragma once
 #endif
 
 #include "cgamedata/c_object.h"
+#include "cgamedata/c_bigfile_manager.h"
 
 namespace ncore
 {
@@ -49,19 +50,19 @@ namespace ncore
 
         language_t(alloc_t* allocator);
 
-        void init(fileid_t const* languageFileIds);
+        void init(ngd::fileid_t const* languageFileIds);
         void exit();
 
         s8   getCurrentLanguage() const;
-        void loadCurrentLanguage(bigfile_t* bf, s8 language);
+        void loadCurrentLanguage(ngd::bigfile_t* bf, s8 language);
 
         // UTF-8
-        const char* getText(locstr_t lstr) const;
+        const char* getText(ngd::locstr_t lstr) const;
 
     private:
-        alloc_t*  mAllocator;
-        s8        mCurrentLanguage;
-        fileid_t  mLanguageFiles[LANGUAGE_COUNT];
+        alloc_t*      mAllocator;
+        s8            mCurrentLanguage;
+        ngd::fileid_t mLanguageFiles[LANGUAGE_COUNT];
 
         struct data_t // Exact file-format of a language file
         {
