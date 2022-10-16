@@ -38,8 +38,55 @@ namespace ncore
             }
 
         private:
-            T const* m_array;
-            s32      m_length;
+            T const*  m_array;
+            s32 const m_length;
+        };
+
+        class string_t
+        {
+        public:
+            string_t(s32 len, const char* str) : m_len(len), m_str(str) {}
+            s32 len() const { return m_len; }
+            const char* str() const { return m_str; }
+        private:
+            const s32 m_len;
+            const char* m_str;
+        };
+
+        template <class T> class rawarr_t
+        {
+        public:
+            array_t<T> array() const { return array_t<T>(mLength, (T const*)((const char*)&mOffset + mOffset)); }
+        private:
+            s32 const mLength;
+            s32 const mOffset;
+        };
+
+        template <class T> class rawobj_t
+        {
+        public:
+            const T* ptr() const { return (const T*)((const char*)&mOffset + mOffset); }
+        private:
+            s32 const mOffset;
+        };
+
+        class rawstr_t
+        {
+        public:
+            string_t str() const { return string_t(mLength, ((const char*)&mOffset + mOffset)); }
+        private:
+            s32 const mLength;
+            s32 const mOffset;
+        };
+
+        // e.g. rawenum_t<EConfig, u16>
+        template <class T, class E> class rawenum_t
+        {
+        public:
+            void get(T& e) const { e = (T)mEnum; }
+            T    get() const { return (T)mEnum; }
+        private:
+            E const mEnum;
         };
 
         class membername_t
