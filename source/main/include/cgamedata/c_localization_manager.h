@@ -73,7 +73,7 @@ namespace ncore
             // u32[] offsets
             // char[][] strings
         };
-        data_t*     mCurrentLanguage;
+        data_t*     mData;
         u32 const*  mOffsets;
         char const* mStrings;
     };

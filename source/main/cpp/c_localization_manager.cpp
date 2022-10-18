@@ -1,11 +1,7 @@
 #include "cbase/c_target.h"
 #include "cgamedata/c_localization_manager.h"
 
-
-
 #if 0
-
-
 
 using namespace ncore;
 

@@ -1,4 +1,7 @@
-#include "CxHdRoot\CxHdRoot.h"
+#include "cgamedata\c_object.h"
+
+#if 0
+
 #include "HwNumber\HwFx16.h"
 #include "HwNumber\HwFx32.h"
 #include "HwFile\HwFile.h"
@@ -153,3 +156,5 @@ namespace ncore
     }
 
 } // namespace ncore
+
+#endif

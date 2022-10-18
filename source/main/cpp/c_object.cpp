@@ -4,17 +4,14 @@
 #include "cbase/c_va_list.h"
 
 #include "cgamedata/c_object.h"
-#include "cgamedata/c_stringtable.h"
 
 namespace ncore
 {
     namespace ngd
     {
-        const fileid_t sInvalidFileId = -1;
-        const locstr_t sInvalidLocStr = -1;
-
-        const vec3f_t  vec3f_t::sZero;
-        const vec3fx_t vec3fx_t::sZero;
+        static const s32 sZeroMemory[] = {0,0,0,0};
+        const vec3f_t    vec3f_t::sZero = *((vec3f_t*)sZeroMemory);
+        const vec3fx_t   vec3fx_t::sZero = *((vec3fx_t*)sZeroMemory);
 
         class member_t
         {
@@ -196,13 +193,12 @@ namespace ncore
 
             template <class T> const array_t<T>& getArray() const
             {
-                const int* data = (const int*)(m_offset);
+                const int* data = (const int*)((const char*)&m_offset + m_offset);
                 return *((const array_t<T>*)(data));
             }
 
             int sizeOfArray() const { return m_array.m_array_size; }
-
-            const void* dataOfArray() const { return (const void*)(m_array.m_array_data); }
+            const void* dataOfArray() const { return (const void*)((const char*)&m_array.m_array_data + m_array.m_array_data); }
         };
 
         u32 member_t::sTypeHashTable[TYPE_MAX];
@@ -221,9 +217,9 @@ namespace ncore
             const member_t* member = (const member_t*)((ptr_t)this + sizeof(object_t));
             for (int i = 0; i < getNumMembers(); i++, member++)
             {
-                const char* memberNameStr = stringTable.getStrByHash(member->nameHash());
-                const char* memberTypeStr = typeTable.getStrByIndex(member->typeHash());
-                log_t::writeLine(log_t::INFO, "member_t with name {0} of type {1} with value {2}", va_list_t(va_t(memberNameStr), va_t(memberTypeStr)));
+                //const char* memberNameStr = stringTable.getStrByHash(member->nameHash());
+                //const char* memberTypeStr = typeTable.getStrByIndex(member->typeHash());
+                //log_t::writeLine(log_t::INFO, "member_t with name {0} of type {1} with value {2}", va_list_t(va_t(memberNameStr), va_t(memberTypeStr)));
             }
 #endif
         }
@@ -445,7 +441,7 @@ namespace ncore
                 return "invalid";
             }
 #endif
-            return (const char*)m->offset();
+            return (const char*)m + m->offset();
         }
 
         locstr_t object_t::get_locstr(membername_t name) const
@@ -476,13 +472,13 @@ namespace ncore
 #ifndef _SUBMISSION
                 log_t::writeLine(log_t::WARNING, "Warning: getfileid(membername_t name): member with name {0} does not exist", va_list_t(va_t(name.getName())));
 #endif
-                return sInvalidFileId;
+                return INVALID_FILEID;
             }
 #ifndef _SUBMISSION
             if (m->is_fileid() == false)
             {
                 log_t::writeLine(log_t::WARNING, "Warning: getfileid(membername_t name): is not a fileId.", va_list_t(va_t(name.getName())));
-                return sInvalidFileId;
+                return INVALID_FILEID;
             }
 #endif
             return fileid_t(m->value());
@@ -509,7 +505,7 @@ namespace ncore
             if (m->offset() == -1)
                 return nullptr;
             else
-                return (const object_t*)(m->offset());
+                return (const object_t*)((const char*)m + m->offset());
         }
 
         color_t object_t::get_color(membername_t name) const
@@ -549,7 +545,7 @@ namespace ncore
                 return vec3fx_t::sZero;
             }
 #endif
-            return *((vec3fx_t*)m->offset());
+            return *((vec3fx_t*)((const char*)m + m->offset()));
         }
 
         array_t<bool> object_t::get_bool_array(membername_t name) const
@@ -1160,7 +1156,7 @@ namespace ncore
 #ifndef _SUBMISSION
                 log_t::writeLine(log_t::WARNING, "Warning: getlocstr(membername_t name): member with name {0} does not exist", va_list_t(va_t(name.getName())));
 #endif
-                return sInvalidLocStr;
+                return INVALID_LOCSTR;
             }
 #ifndef _SUBMISSION
             if (m->is_locstr_array() == false)
@@ -1185,13 +1181,13 @@ namespace ncore
 #ifndef _SUBMISSION
                 log_t::writeLine(log_t::WARNING, "Warning: getfileid(membername_t name): member with name {0} does not exist", va_list_t(va_t(name.getName())));
 #endif
-                return sInvalidFileId;
+                return INVALID_FILEID;
             }
 #ifndef _SUBMISSION
             if (m->is_fileid_array() == false)
             {
                 log_t::writeLine(log_t::WARNING, "Warning: getfileid(membername_t name, int index): is not a fileid_t[]", va_list_t(va_t(name.getName())));
-                return sInvalidFileId;
+                return INVALID_FILEID;
             }
             else
 #endif
@@ -1233,10 +1229,10 @@ namespace ncore
         {
             const int nameHash = strhash32_lowercase(name.getName());
 
-            const short* offsets = (const short*)((int)this + sizeof(object_t));
+            const short* offsets = (const short*)((const char*)this + sizeof(object_t));
             for (int i = 0; i < m_member_count; i++)
             {
-                const member_t* member = (member_t*)((int)this + sizeof(object_t) + offsets[i]);
+                const member_t* member = (member_t*)((const char*)this + sizeof(object_t) + offsets[i]);
                 if (member->nameHash() == nameHash)
                     return member;
             }
@@ -1247,14 +1243,14 @@ namespace ncore
         {
             const int nameHash = strhash32_lowercase(name.getName());
 
-            const short* offsets = (const short*)((int)this + sizeof(object_t));
+            const short* offsets = (const short*)((const char*)this + sizeof(object_t));
             for (int i = 0; i < m_member_count; i++)
             {
-                const member_t* member = (member_t*)((int)this + sizeof(object_t) + offsets[i]);
+                const member_t* member = (member_t*)((const char*)this + sizeof(object_t) + offsets[i]);
                 if (member->nameHash() == nameHash)
                 {
                     if (member->offset() != -1)
-                        return (const void*)(member->offset());
+                        return (const void*)((const char*)member + member->offset());
                 }
             }
             return nullptr;
@@ -1262,9 +1258,9 @@ namespace ncore
 
         static bool LogWarningForMemberDoesNotExist(const char* functionName, membername_t name)
         {
-#    ifndef _SUBMISSION
+#ifndef _SUBMISSION
             log_t::writeLine(log_t::WARNING, "Warning: {0}(membername_t name): member with name {1} does not exist", va_list_t(va_t(functionName), va_t(name.getName())));
-#    endif
+#endif
             return false;
         }
 
@@ -1527,5 +1523,5 @@ namespace ncore
             }
             return LogWarningForMemberDoesNotExist("is_object_array", name);
         }
-    }
-}
+    } // namespace ngd
+} // namespace ncore

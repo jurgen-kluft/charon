@@ -51,7 +51,7 @@ namespace ncore
 
         struct mft_t
         {
-            fileinfo_t   getFileInfo(const void* base, s32 index) const;
+            fileinfo_t   getFileInfo(const void* base, fileid_t index) const;
             s32          getFileIdCount(s32 index) const;
             array_t<u32> getFileIdArray(s32 index) const;
 
@@ -60,10 +60,10 @@ namespace ncore
             u32 mFileDataBaseOffset; //
         };
 
-        fileinfo_t mft_t::getFileInfo(const void* base, s32 index) const
+        fileinfo_t mft_t::getFileInfo(const void* base, fileid_t id) const
         {
             const fileinfo_t* table = (const fileinfo_t*)((ptr_t)base + mTocOffset);
-            return table[index];
+            return table[id & 0xffffffff];
         }
 
         // Table - Filename offsets
@@ -72,14 +72,14 @@ namespace ncore
         //
         struct fdb_t
         {
-            const char* filename(s32 index) const;
+            const char* filename(fileid_t index) const;
             s32         mNumEntries;
         };
 
-        const char* fdb_t::filename(s32 index) const
+        const char* fdb_t::filename(fileid_t id) const
         {
-            const s32* offset = (const s32*)((s32)this + sizeof(fdb_t));
-            return (const char*)((s32)this + sizeof(fdb_t) + sizeof(s32) * mNumEntries + offset[index]);
+            const s32* offset = (const s32*)((ptr_t)this + sizeof(fdb_t));
+            return (const char*)((ptr_t)this + sizeof(fdb_t) + sizeof(s32) * mNumEntries + offset[id & 0xffffffff]);
         }
 
         //         The .bfa file containing all the files, uses the .mft file to obtain the
@@ -190,7 +190,13 @@ namespace ncore
             return false;
         }
 
-        s32 bigfile_t::read(fileid_t id, void* destination) const { return read(id, 0, f.getFileSize(), destination); }
+        s32 bigfile_t::read(fileid_t id, void* destination) const 
+        { 
+            fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
+            if (!f.isValid())
+                return -1;
+            return read(id, 0, f.getFileSize(), destination); 
+        }
         s32 bigfile_t::read(fileid_t id, s32 size, void* destination) const { return read(id, 0, size, destination); }
         s32 bigfile_t::read(fileid_t id, s32 offset, s32 size, void* destination) const
         {

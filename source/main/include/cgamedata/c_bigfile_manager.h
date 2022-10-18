@@ -13,7 +13,7 @@ namespace ncore
 
     namespace ngd
     {
-        typedef u64 fileid_t;
+        typedef s64 fileid_t;
 
         struct mft_t;
         struct fdb_t;

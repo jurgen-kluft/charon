@@ -21,7 +21,7 @@ namespace ncore
         public:
             array_t()
                 : m_length(0)
-                , m_array(NULL)
+                , m_array(nullptr)
             {
             }
             array_t(const s32 size, T const* data)
@@ -108,11 +108,11 @@ namespace ncore
         static const color_t sBlackColor;
         static const color_t sWhiteColor;
 
-        typedef u64           fileid_t;
-        static const fileid_t sInvalidFileId;
-
+        typedef s64           fileid_t;
         typedef s32           locstr_t;
-        static const locstr_t sInvalidLocStr;
+
+#       define INVALID_FILEID -1
+#       define INVALID_LOCSTR -1
 
         class vec3f_t
         {
