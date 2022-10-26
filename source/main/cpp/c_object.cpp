@@ -237,7 +237,7 @@ namespace ncore
 #ifndef _SUBMISSION
             if (m->is_bool() == false)
             {
-                log_t::writeLine(log_t::WARNING, "getBool(membername_t name) is not a bool.", va_list_t(va_t(name.getName())));
+                log_t::writeLine(log_t::WARNING, "getBool(membername_t name): member with name {0} is not of type bool", va_list_t(va_t(name.getName())));
                 return false;
             }
 #endif
