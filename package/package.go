@@ -1,9 +1,10 @@
 package cgamedata
 
 import (
-	"github.com/jurgen-kluft/cbase/package"
-	"github.com/jurgen-kluft/ccode/denv"
-	"github.com/jurgen-kluft/cfile/package"
+	cbase "github.com/jurgen-kluft/cbase/package"
+	denv "github.com/jurgen-kluft/ccode/denv"
+	cfile "github.com/jurgen-kluft/cfile/package"
+	cunittest "github.com/jurgen-kluft/cunittest/package"
 )
 
 // GetPackage returns the package object of 'cgamedata'
