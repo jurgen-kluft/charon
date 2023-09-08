@@ -2,7 +2,7 @@
 #define __CGAMEDATA_OBJECT_H__
 #include "ccore/c_target.h"
 #ifdef USE_PRAGMA_ONCE
-#pragma once
+#    pragma once
 #endif
 
 #include "ccore/c_debug.h"
@@ -16,22 +16,23 @@ namespace ncore
         class object_t;
         class stringtable_t;
 
-        template <class T> class array_t
+        template <class T>
+        class array_t
         {
         public:
-            array_t()
+            inline array_t()
                 : m_length(0)
                 , m_array(nullptr)
             {
             }
-            array_t(const s32 size, T const* data)
+            inline array_t(const s32 size, T const* data)
                 : m_length(size)
                 , m_array(data)
             {
             }
 
-            s32      size() const { return m_length; }
-            const T& operator[](s32 index) const
+            inline s32      size() const { return m_length; }
+            inline const T& operator[](s32 index) const
             {
                 ASSERT(index < m_length);
                 return m_array[index];
@@ -45,27 +46,36 @@ namespace ncore
         class string_t
         {
         public:
-            string_t(s32 len, const char* str) : m_len(len), m_str(str) {}
-            s32 len() const { return m_len; }
-            const char* str() const { return m_str; }
+            inline string_t(s32 len, const char* str)
+                : m_len(len)
+                , m_str(str)
+            {
+            }
+            inline s32         len() const { return m_len; }
+            inline const char* str() const { return m_str; }
+
         private:
-            const s32 m_len;
             const char* m_str;
+            const s32   m_len;
         };
 
-        template <class T> class rawarr_t
+        template <class T>
+        class rawarr_t
         {
         public:
-            array_t<T> array() const { return array_t<T>(mLength, (T const*)((const char*)&mOffset + mOffset)); }
+            inline array_t<T> array() const { return array_t<T>(mLength, (T const*)((const char*)&mOffset + mOffset)); }
+
         private:
             s32 const mLength;
             s32 const mOffset;
         };
 
-        template <class T> class rawobj_t
+        template <class T>
+        class rawobj_t
         {
         public:
-            const T* ptr() const { return (const T*)((const char*)&mOffset + mOffset); }
+            inline const T* ptr() const { return (const T*)((const char*)&mOffset + mOffset); }
+
         private:
             s32 const mOffset;
         };
@@ -73,18 +83,21 @@ namespace ncore
         class rawstr_t
         {
         public:
-            string_t str() const { return string_t(mLength, ((const char*)&mOffset + mOffset)); }
+            inline string_t str() const { return string_t(mLength, ((const char*)&mOffset + mOffset)); }
+
         private:
             s32 const mLength;
             s32 const mOffset;
         };
 
         // e.g. rawenum_t<EConfig, u16>
-        template <class T, class E> class rawenum_t
+        template <class T, class E>
+        class rawenum_t
         {
         public:
             void get(T& e) const { e = (T)mEnum; }
             T    get() const { return (T)mEnum; }
+
         private:
             E const mEnum;
         };
@@ -108,11 +121,11 @@ namespace ncore
         static const color_t sBlackColor;
         static const color_t sWhiteColor;
 
-        typedef s64           fileid_t;
-        typedef s32           locstr_t;
+        typedef s64 fileid_t;
+        typedef s32 locstr_t;
 
-#       define INVALID_FILEID -1
-#       define INVALID_LOCSTR -1
+#define INVALID_FILEID -1
+#define INVALID_LOCSTR -1
 
         class vec3f_t
         {
@@ -159,9 +172,9 @@ namespace ncore
         };
 
         // Examples:
-        //		const object_t* track   = HdRoots::get("main")->gexobject(membername_t("tracks"))->gexobject(membername_t("track1"));
-        //		const object_t* texture = track->gexobject(membername_t("textures"))->gexobject(membername_t("texture1"));
-        //      const fileid_t fileId   = texture->gexfileid(membername_t("fileid"));
+        //		const object_t* track   = HdRoots::get("main")->get_object(membername_t("tracks"))->get_object(membername_t("track1"));
+        //		const object_t* texture = track->get_object(membername_t("textures"))->get_object(membername_t("texture1"));
+        //      const fileid_t fileId   = texture->get_fileid(membername_t("fileid"));
         class object_t
         {
         public:
@@ -239,8 +252,10 @@ namespace ncore
             array_t<color_t>         get_color_array(membername_t _tname) const;
             array_t<vec3fx_t>        get_vec3f_t_array(membername_t _tname) const;
 
-            template <class T> const T*          get_compound(membername_t _tname) const;
-            template <class T> array_t<const T*> get_compoundarray(membername_t _tname) const;
+            template <class T>
+            const T* get_compound(membername_t _tname) const;
+            template <class T>
+            array_t<const T*> get_compoundarray(membername_t _tname) const;
 
             ///@name Array property accessors (indirect)
             bool   get_bool(membername_t _tname, s32 index) const;
@@ -269,14 +284,19 @@ namespace ncore
             const void*     get_compound(membername_t _tname) const;
         };
 
-        template <class T> const T* object_t::get_compound(membername_t _tname) const { return (const T*)get_compound(name); }
+        template <class T>
+        const T* object_t::get_compound(membername_t _tname) const
+        {
+            return (const T*)get_compound(name);
+        }
 
-        template <class T> array_t<const T*> object_t::get_compoundarray(membername_t _tname) const
+        template <class T>
+        array_t<const T*> object_t::get_compoundarray(membername_t _tname) const
         {
             array_t<const object_t*> objArray = get_objectarray(name);
             return array_t<const T*>(objArray.size(), (const T*)&objArray[0]);
         }
-    } // namespace ngd
-} // namespace ncore
+    }  // namespace ngd
+}  // namespace ncore
 
-#endif /// __CGAMEDATA_OBJECT_H__
+#endif  /// __CGAMEDATA_OBJECT_H__
