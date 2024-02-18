@@ -17,7 +17,7 @@ namespace ncore
         public:
             root_t();
 
-            const object_t*      root() const { return m_data->mRoot; }
+            const object_t*      root() const { return m_data->m_root; }
             const stringtable_t* stringtable() const { return m_data->m_stringtable; }
 
             void load(const char* dataFilename, const char* relocFilename);

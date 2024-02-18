@@ -116,7 +116,7 @@ namespace ncore
             const char* m_name;
         };
 
-        typedef s32 color_t;
+        typedef u32 color_t;
 
         static const color_t sBlackColor;
         static const color_t sWhiteColor;
@@ -124,8 +124,8 @@ namespace ncore
         typedef s64 fileid_t;
         typedef s32 locstr_t;
 
-#define INVALID_FILEID -1
-#define INVALID_LOCSTR -1
+        const fileid_t INVALID_FILEID = -1;
+        const locstr_t INVALID_LOCSTR = -1;
 
         class vec3f_t
         {
@@ -178,8 +178,6 @@ namespace ncore
         class object_t
         {
         public:
-            static void init();
-
             ///@name For checking if a member is present
             bool hasMember(membername_t _tname) const;
             s32  getNumMembers() const { return m_member_count; }
