@@ -1,4 +1,4 @@
-#include "ccore/c_allocator.h"
+#include "cbase/c_allocator.h"
 #include "cbase/c_log.h"
 #include "cbase/c_integer.h"
 #include "cfile/c_file.h"
@@ -10,15 +10,20 @@ namespace ncore
 {
     namespace ngd
     {
+        // Constraints:
+        //     Maximum file size = 2GB * 32 = 64GB
+        //     Maximum file offset = 2GB * 32 = 64GB
+        //     Compression = High Bit in Offset
+        //     IsArray = High Bit in Size
         struct fileinfo_t
         {
-            inline u64 getFileOffset() const { return (u64)fileOffset(); }
-            inline u32 getFileSize() const { return fileSize(); }
+            inline u64 getFileSize() const { return (u64)(mFileSize & ~0x80000000) << 5; }
+            inline u64 getFileOffset() const { return (u64)(mFileOffset& ~0x80000000) << 5; }
 
-            inline bool isValid() const { return (mFileSize != 0xffffffff); }
-            inline bool isCompressed() const { return (mFileSize & 0x80000000) != 0 ? true : false; }
+            inline bool isValid() const { return (mFileSize != 0xffffffff && mFileOffset != 0xffffffff); }
+            inline bool isCompressed() const { return (mFileOffset & 0x80000000) != 0 ? true : false; }
 
-            inline bool               hasFileIdArray() const { return (mFileSize & 0x40000000) != 0 ? true : false; }
+            inline bool               hasFileIdArray() const { return (mFileSize & 0x80000000) != 0 ? true : false; }
             inline const array_t<u32> getFileIdArray(const void* base)
             {
                 u32 const* data = ((u32 const*)base + mFileOffset);
@@ -26,9 +31,6 @@ namespace ncore
             }
 
         private:
-            inline u32 fileSize() const { return mFileSize & ~0xC0000000; }
-            inline u64 fileOffset() const { return ((u64)mFileOffset << 5); }
-
             u32 mFileOffset;
             u32 mFileSize;
         };
@@ -82,43 +84,41 @@ namespace ncore
             return (const char*)((ptr_t)this + sizeof(fdb_t) + sizeof(s32) * mNumEntries + offset[id & 0xffffffff]);
         }
 
-        //         The .bfa file containing all the files, uses the .mft file to obtain the
-        //         offset in the .bfa file for a file.
-
-        bigfile_t* bigfile_t::instance = nullptr;
+        // The .bfa file containing all the files, uses the .mft file to obtain the
+        // offset in the .bfa file for a file.
 
         bigfile_t::bigfile_t(alloc_t* allocator)
         {
             mAlloc   = allocator;
             mMFT     = nullptr;
             mFDB     = nullptr;
-            mBigfile = file_handle_t();
+            mBigfile = nfile::file_handle_t();
         }
 
         bool bigfile_t::open(const char* bigfileFilename, const char* bigTocFilename, const char* bigDatabaseFilename)
         {
             close();
 
-            mBigfile = file_open(bigfileFilename, file_mode_t::FILE_MODE_READ);
+            mBigfile = file_open(bigfileFilename, nfile::file_mode_t::FILE_MODE_READ);
             if (mBigfile.isValid())
             {
-                file_handle_t gdt = file_open(bigTocFilename, file_mode_t::FILE_MODE_READ);
+                nfile::file_handle_t gdt = nfile::file_open(bigTocFilename, nfile::file_mode_t::FILE_MODE_READ);
                 if (gdt.isValid())
                 {
-                    const s32 fileSize = (s32)file_size(gdt);
+                    const s32 fileSize = (s32)nfile::file_size(gdt);
                     mMFT               = (mft_t*)mAlloc->allocate(math::align(fileSize, 4));
-                    file_read(gdt, (u8*)mMFT, (u32)fileSize);
-                    file_close(gdt);
+                    nfile::file_read(gdt, (u8*)mMFT, (u32)fileSize);
+                    nfile::file_close(gdt);
                 }
 
 #if !defined(_SUBMISSION)
-                file_handle_t namesFile = file_open(bigDatabaseFilename, file_mode_t::FILE_MODE_READ);
+                nfile::file_handle_t namesFile = nfile::file_open(bigDatabaseFilename, nfile::file_mode_t::FILE_MODE_READ);
                 if (namesFile.isValid())
                 {
-                    const s32 size = (s32)file_size(namesFile);
+                    const s32 size = (s32)nfile::file_size(namesFile);
                     mFDB           = (fdb_t*)mAlloc->allocate(math::align(size, 4));
-                    file_read(namesFile, (u8*)mFDB, (u32)size);
-                    file_close(namesFile);
+                    nfile::file_read(namesFile, (u8*)mFDB, (u32)size);
+                    nfile::file_close(namesFile);
                 }
                 else
                 {
@@ -175,7 +175,7 @@ namespace ncore
 #endif
         }
 
-        s32 bigfile_t::size(fileid_t id) const
+        s64 bigfile_t::size(fileid_t id) const
         {
             fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
             return f.getFileSize();
@@ -190,22 +190,22 @@ namespace ncore
             return false;
         }
 
-        s32 bigfile_t::read(fileid_t id, void* destination) const 
+        s64 bigfile_t::read(fileid_t id, void* destination) const 
         { 
             fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
             if (!f.isValid())
                 return -1;
             return read(id, 0, f.getFileSize(), destination); 
         }
-        s32 bigfile_t::read(fileid_t id, s32 size, void* destination) const { return read(id, 0, size, destination); }
-        s32 bigfile_t::read(fileid_t id, s32 offset, s32 size, void* destination) const
+        s64 bigfile_t::read(fileid_t id, s32 size, void* destination) const { return read(id, 0, size, destination); }
+        s64 bigfile_t::read(fileid_t id, s32 offset, s32 size, void* destination) const
         {
             fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
             if (!f.isValid())
                 return -1;
 
             const s64 seekpos = f.getFileOffset() + offset;
-            file_seek(mBigfile, seekpos, seek_mode_t::SEEK_MODE_BEG);
+            nfile::file_seek(mBigfile, seekpos, nfile::seek_mode_t::SEEK_MODE_BEG);
 
             const s32 numBytesRead = (s32)(file_read(mBigfile, (u8*)destination, size));
             return numBytesRead;

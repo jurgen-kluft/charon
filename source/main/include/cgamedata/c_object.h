@@ -59,46 +59,108 @@ namespace ncore
             const s32   m_len;
         };
 
+        class strtable_t
+        {
+        public:
+            inline strtable_t(u32 numStrings, u32 const* offsets, const char* strings)
+                : mNumStrings(numStrings)
+                , mOffsets(offsets)
+                , mStrings(strings)
+            {
+            }
+            inline s32         len() const { return mNumStrings; }
+            inline const char* str(u32 index) const { return mStrings + mOffsets[index]; }
+
+        protected:
+            u32 const   mNumStrings;
+            u32 const*  mOffsets;
+            const char* mStrings;
+        };
+
+        class raw_strtable_t
+        {
+        public:
+            inline s32         len() const { return mNumStrings; }
+            inline const char* operator[](u32 index) const { return strings() + offsets()[index]; }
+            strtable_t         strtable() const { return strtable_t(mNumStrings, offsets(), strings()); }
+
+        protected:
+            inline u32 const*  offsets() const { return (u32*)((u8*)this + mOffsetToOffsets); }
+            inline char const* strings() const { return (char const*)((u8*)this + mOffsetToStrings); }
+
+            inline raw_strtable_t(u64 magic, u32 numStrings, u32 offsetToOffsets, u32 offsetToStrings)
+                : mMagic(magic)
+                , mNumStrings(numStrings)
+                , mOffsetToOffsets(offsetToOffsets)
+                , mOffsetToStrings(offsetToStrings)
+            {
+            }
+
+            u64 const mMagic;
+            u32 const mNumStrings;
+            u32 const mOffsetToOffsets;
+            u32 const mOffsetToStrings;
+        };
+
         template <class T>
-        class rawarr_t
+        class raw_arr_t
         {
         public:
             inline array_t<T> array() const { return array_t<T>(mLength, (T const*)((const char*)&mOffset + mOffset)); }
 
-        private:
+        protected:
+            inline raw_arr_t(s32 length, s32 offset)
+                : mLength(length)
+                , mOffset(offset)
+            {
+            }
             s32 const mLength;
             s32 const mOffset;
         };
 
         template <class T>
-        class rawobj_t
+        class raw_obj_t
         {
         public:
             inline const T* ptr() const { return (const T*)((const char*)&mOffset + mOffset); }
 
-        private:
+        protected:
+            inline raw_obj_t(s32 offset)
+                : mOffset(offset)
+            {
+            }
             s32 const mOffset;
         };
 
-        class rawstr_t
+        class raw_str_t
         {
         public:
             inline string_t str() const { return string_t(mLength, ((const char*)&mOffset + mOffset)); }
 
-        private:
+        protected:
+            inline raw_str_t(s32 length, s32 offset)
+                : mLength(length)
+                , mOffset(offset)
+            {
+            }
+
             s32 const mLength;
             s32 const mOffset;
         };
 
         // e.g. rawenum_t<EConfig, u16>
         template <class T, class E>
-        class rawenum_t
+        class raw_enum_t
         {
         public:
             void get(T& e) const { e = (T)mEnum; }
             T    get() const { return (T)mEnum; }
 
-        private:
+        protected:
+            inline raw_enum_t(E e)
+                : mEnum(e)
+            {
+            }
             E const mEnum;
         };
 
@@ -118,8 +180,8 @@ namespace ncore
 
         typedef u32 color_t;
 
-        static const color_t sBlackColor;
-        static const color_t sWhiteColor;
+        const color_t sBlackColor = 0x00000000;
+        const color_t sWhiteColor = 0xFFFFFFFF;
 
         typedef s64 fileid_t;
         typedef s32 locstr_t;
@@ -261,13 +323,13 @@ namespace ncore
         template <class T>
         const T* object_t::get_compound(membername_t _tname) const
         {
-            return (const T*)get_compound(name);
+            return (const T*)get_compound(_tname);
         }
 
         template <class T>
         array_t<const T*> object_t::get_compoundarray(membername_t _tname) const
         {
-            array_t<const object_t*> objArray = get_objectarray(name);
+            array_t<const object_t*> objArray = get_object_array(_tname);
             return array_t<const T*>(objArray.size(), (const T*)&objArray[0]);
         }
     }  // namespace ngd

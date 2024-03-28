@@ -12,6 +12,8 @@
 #  pragma once
 # endif // M_PRAGMA_ONCE
 
+#if 0
+
 #include "IO/Resources.h" //use the FileId class defined in this header file
 
 enum ECurveState
@@ -124,3 +126,4 @@ inline ncore::u32 C2dFCurve::iGetMagicNb() const
 
 
 #endif // _2DCURVE_H_
+#endif

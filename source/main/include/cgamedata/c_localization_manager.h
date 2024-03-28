@@ -12,11 +12,14 @@ namespace ncore
 {
     class alloc_t;
 
-    class language_t
+    namespace ngd
+    {
+        class bigfile_t;
+    }
+
+    class localization_t
     {
     public:
-        static language_t* instance;
-
         enum
         {
             LANGUAGE_INVALID    = -1,
@@ -29,10 +32,10 @@ namespace ncore
             LANGUAGE_SPANISH    = 6,
             LANGUAGE_FRENCH_US  = 7,
             LANGUAGE_PORTUGUESE = 8,
-            LANGUAGE_BRAZILIAN  = 9,  // Brazilian Portuguese
-            LANGUAGE_JAPANESE   = 10, //
-            LANGUAGE_KOREAN     = 11, // Korean
-            LANGUAGE_RUSSIAN    = 12, // Russian
+            LANGUAGE_BRAZILIAN  = 9,   // Brazilian Portuguese
+            LANGUAGE_JAPANESE   = 10,  //
+            LANGUAGE_KOREAN     = 11,  // Korean
+            LANGUAGE_RUSSIAN    = 12,  // Russian
             LANGUAGE_GREEK      = 13,
             LANGUAGE_CHINESE_T  = 14,
             LANGUAGE_CHINESE_S  = 15,
@@ -48,13 +51,13 @@ namespace ncore
             LANGUAGE_MAIN    = LANGUAGE_DEFAULT
         };
 
-        language_t(alloc_t* allocator);
+        localization_t(alloc_t* allocator);
 
-        void init(ngd::fileid_t const* languageFileIds);
+        void init(ngd::object_t* root, ngd::fileid_t const* languageFileIds, ngd::bigfile_t* bigfile);
         void exit();
 
         s8   getCurrentLanguage() const;
-        void loadCurrentLanguage(ngd::bigfile_t* bf, s8 language);
+        void loadCurrentLanguage(ngd::object_t* root, ngd::bigfile_t* bf, s8 language);
 
         // UTF-8
         const char* getText(ngd::locstr_t lstr) const;
@@ -64,20 +67,21 @@ namespace ncore
         s8            mCurrentLanguage;
         ngd::fileid_t mLanguageFiles[LANGUAGE_COUNT];
 
-        struct data_t // Exact file-format of a language file
+        struct data_t  // Exact file-format of a language file
         {
-            u64 const mMagic; // '_LANGUAGE_'
-            u32 const mNumStrings;
-            u32 const mOffsetToOffsets;
-            u32 const mOffsetToStrings;
-            // u32[]    offsets
-            // char[][] strings
+            u64 const          mMagic;  // '_LANGUAGE_'
+            u32 const          mNumStrings;
+            u32 const          mOffsetToOffsets;
+            u32 const          mOffsetToStrings;
+            inline u32 const*  Offsets() const { return (u32*)((u8*)this + mOffsetToOffsets); }
+            inline char const* Strings() const { return (char const*)((u8*)this + mOffsetToStrings); }
         };
+        s32         mLanguageFileSize;
         data_t*     mData;
         u32 const*  mOffsets;
         char const* mStrings;
     };
 
-} // namespace ncore
+}  // namespace ncore
 
-#endif // __CGAMEDATA_LANGUAGE_H__
+#endif  // __CGAMEDATA_LANGUAGE_H__

@@ -140,8 +140,8 @@ namespace ncore
             // u24 m_name_idx; // If the number of members < 16M
             // If all members are in a seperate string table and they are sorted
             // the user logic can get the member id from the name id.
-            member_type_t m_type;
-            u64           m_name_hash;
+            u8  m_type;
+            u64 m_name_hash;
 
             struct value_member_t
             {
@@ -161,20 +161,20 @@ namespace ncore
 
         public:
             member_t()
-                : m_type({member_type_t::TYPE_NONE})
+                : m_type(member_type_t::TYPE_NONE)
                 , m_name_hash(0)
                 , m_value({0, 0})
             {
             }
 
-            inline member_type_t type() const { return m_type; }
+            inline member_type_t type() const { return member_type_t(m_type); }
             inline u64           nameHash() const { return m_name_hash; }
             inline u32           offset() const { return m_value.m_offset; }
             inline u32           value() const { return m_value.m_value; }
             inline const u32    *valuePtr() const { return &m_value.m_value; }
 
-            inline bool is_type(u8 type) const { return m_type.m_type == type; }
-            inline bool is_valid() const { return m_type.m_type != member_type_t::TYPE_NONE; }
+            inline bool is_type(u8 type) const { return m_type == type; }
+            inline bool is_valid() const { return m_type != member_type_t::TYPE_NONE; }
             inline bool is_bool() const { return m_type == member_type_t::TYPE_BOOL8; }
             inline bool is_s8() const { return m_type == member_type_t::TYPE_INT8; }
             inline bool is_s16() const { return m_type == member_type_t::TYPE_INT16; }
@@ -213,13 +213,13 @@ namespace ncore
             inline bool is_color_array() const { return m_type == member_type_t::TYPE_COLOR_ARRAY; }
             inline bool is_vec3f_array() const { return m_type == member_type_t::TYPE_VECTOR3F_ARRAY; }
             inline bool is_vec3fx_array() const { return m_type == member_type_t::TYPE_VECTOR3FX_ARRAY; }
-            inline bool isArray() const { return m_type.isArray(); }
-            inline bool isPtr() const { return m_type.isPtr(); }
+            inline bool isArray() const { return (m_type & member_type_t::TYPE_ARRAY) == member_type_t::TYPE_ARRAY; }
+            inline bool isPtr() const { return (m_type & member_type_t::TYPE_PTR) == member_type_t::TYPE_PTR; }
 
             template <class T>
             const array_t<T> &getArray() const
             {
-                const int *data = (const int *)((const char *)&m_offset + m_offset);
+                const int *data = (const int *)((const char *)&m_value.m_offset + m_value.m_offset);
                 return *((const array_t<T> *)(data));
             }
 
@@ -254,7 +254,7 @@ namespace ncore
             {
 #ifndef _SUBMISSION
                 const char *member_name = name.getName();
-                log_t::writeLine(log_t::WARNING, "Warning: member with name {0} doesn't exist", va_list_t(va_t(member_name)));
+                log_t::writeLine(log_t::WARNING, "Warning: member with name {0} doesn't exist", va_t(member_name));
 #endif
                 return true;
             }
@@ -263,8 +263,8 @@ namespace ncore
             {
 #ifndef _SUBMISSION
                 const char *member_name = name.getName();
-                const char *type_str = member->type().toString();
-                log_t::writeLine(log_t::WARNING, "Warning: member {0} is not of type {1}", va_list_t(va_t(member_name), va_t(type_str)));
+                const char *type_str    = member->type().toString();
+                log_t::writeLine(log_t::WARNING, "Warning: member {0} is not of type {1}", va_t(member_name), va_t(type_str));
 #endif
                 return true;
             }
@@ -619,7 +619,7 @@ namespace ncore
 #ifndef _SUBMISSION
                 const char *member_name = name.getName();
                 const char *type_str    = member_type_t(member_type).toString();
-                log_t::writeLine(log_t::WARNING, "Warning: {0}(membername_t name): member with name {1} and type {2} doesn't exist", va_list_t(va_t(functionName), va_t(member_name), va_t(type_str)));
+                log_t::writeLine(log_t::WARNING, "Warning: {0}(membername_t name): member with name {1} and type {2} doesn't exist", va_t(functionName), va_t(member_name), va_t(type_str));
 #endif
                 return false;
             }

@@ -7,6 +7,8 @@
 
 namespace ncore
 {
+    class alloc_t;
+
     namespace ngd
     {
         class object_t;
@@ -15,23 +17,24 @@ namespace ncore
         class root_t
         {
         public:
-            root_t();
+            root_t(alloc_t* allocator);
 
             const object_t*   root() const { return m_data->m_root; }
-            const strtable_t* stringtable() const { return m_data->m_stringtable; }
+            const strtable_t* stringtable() const { return m_data->m_stringTable; }
 
             void load(const char* dataFilename, const char* relocFilename);
             void reload(const char* dataFilename, const char* relocFilename);
             void unload();
 
         protected:
-            u32         m_allocated_datasize;
-            strtable_t* m_typetable;
+            alloc_t*    m_Allocator;
+            strtable_t* m_typeTable;
             struct dataheader_t
             {
-                strtable_t* m_stringtable;
+                strtable_t* m_stringTable;
                 object_t*   m_root;
             };
+            u32           m_dataSize;
             dataheader_t* m_data;
         };
     }  // namespace ngd
