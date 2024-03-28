@@ -14,7 +14,7 @@ namespace ncore
         // Forward declares
         class member_t;
         class object_t;
-        class stringtable_t;
+        class strtable_t;
 
         template <class T>
         class array_t
@@ -172,7 +172,7 @@ namespace ncore
         };
 
         // Examples:
-        //		const object_t* track   = HdRoots::get("main")->get_object(membername_t("tracks"))->get_object(membername_t("track1"));
+        //		const object_t* track   = root->get_object(membername_t("main"))->get_object(membername_t("tracks"))->get_object(membername_t("track1"));
         //		const object_t* texture = track->get_object(membername_t("textures"))->get_object(membername_t("texture1"));
         //      const fileid_t fileId   = texture->get_fileid(membername_t("fileid"));
         class object_t
@@ -182,48 +182,32 @@ namespace ncore
             bool hasMember(membername_t _tname) const;
             s32  getNumMembers() const { return m_member_count; }
 
-            void print(const stringtable_t& strTable, const stringtable_t& typeTable) const;
+            void print(const strtable_t& strTable, const strtable_t& typeTable) const;
 
-            ///@name Normal property accessors
             bool is_s8(membername_t _tname) const;
-            bool is_s8_array(membername_t _tname) const;
             bool is_u8(membername_t _tname) const;
-            bool is_u8_array(membername_t _tname) const;
             bool is_s16(membername_t _tname) const;
-            bool is_s16_array(membername_t _tname) const;
             bool is_u16(membername_t _tname) const;
-            bool is_u16_array(membername_t _tname) const;
             bool is_s32(membername_t _tname) const;
-            bool is_s32_array(membername_t _tname) const;
             bool is_u32(membername_t _tname) const;
-            bool is_u32_array(membername_t _tname) const;
             bool is_fx16(membername_t _tname) const;
-            bool is_fx16_array(membername_t _tname) const;
             bool is_fx32(membername_t _tname) const;
-            bool is_fx32_array(membername_t _tname) const;
             bool is_f32(membername_t _tname) const;
-            bool is_f32_array(membername_t _tname) const;
-
             bool is_locstr(membername_t _tname) const;
-            bool is_locstr_array(membername_t _tname) const;
             bool is_fileid(membername_t _tname) const;
-            bool is_fileid_array(membername_t _tname) const;
             bool is_color(membername_t _tname) const;
-            bool is_color_array(membername_t _tname) const;
             bool is_object(membername_t _tname) const;
-            bool is_object_array(membername_t _tname) const;
 
-            bool   get_bool(membername_t _tname) const;
-            s8     get_s8(membername_t _tname) const;
-            u8     get_u8(membername_t _tname) const;
-            s16    get_s16(membername_t _tname) const;
-            u16    get_u16(membername_t _tname) const;
-            s32    get_s32(membername_t _tname) const;
-            u32    get_u32(membername_t _tname) const;
-            fx16_t get_fx16(membername_t _tname) const;
-            fx32_t get_fx32(membername_t _tname) const;
-            f32    get_f32(membername_t _tname) const;
-
+            bool            get_bool(membername_t _tname) const;
+            s8              get_s8(membername_t _tname) const;
+            u8              get_u8(membername_t _tname) const;
+            s16             get_s16(membername_t _tname) const;
+            u16             get_u16(membername_t _tname) const;
+            s32             get_s32(membername_t _tname) const;
+            u32             get_u32(membername_t _tname) const;
+            fx16_t          get_fx16(membername_t _tname) const;
+            fx32_t          get_fx32(membername_t _tname) const;
+            f32             get_f32(membername_t _tname) const;
             const char*     get_string(membername_t _tname) const;
             locstr_t        get_locstr(membername_t _tname) const;
             fileid_t        get_fileid(membername_t _tname) const;
@@ -231,49 +215,41 @@ namespace ncore
             color_t         get_color(membername_t _tname) const;
             const vec3fx_t& get_vec3fx(membername_t _tname) const;
 
-            ///@name Array property accessors
-            array_t<bool>   get_bool_array(membername_t _tname) const;
-            array_t<s8>     get_s8_array(membername_t _tname) const;
-            array_t<u8>     get_u8_array(membername_t _tname) const;
-            array_t<s16>    get_s16_array(membername_t _tname) const;
-            array_t<u16>    get_u16_array(membername_t _tname) const;
-            array_t<s32>    get_s32_array(membername_t _tname) const;
-            array_t<u32>    get_u32_array(membername_t _tname) const;
-            array_t<fx16_t> get_fx16_array(membername_t _tname) const;
-            array_t<fx32_t> get_fx32_array(membername_t _tname) const;
-            array_t<f32>    get_f32_array(membername_t _tname) const;
+            bool is_s8_array(membername_t _tname) const;
+            bool is_u8_array(membername_t _tname) const;
+            bool is_s16_array(membername_t _tname) const;
+            bool is_u16_array(membername_t _tname) const;
+            bool is_s32_array(membername_t _tname) const;
+            bool is_u32_array(membername_t _tname) const;
+            bool is_fx16_array(membername_t _tname) const;
+            bool is_fx32_array(membername_t _tname) const;
+            bool is_f32_array(membername_t _tname) const;
+            bool is_locstr_array(membername_t _tname) const;
+            bool is_fileid_array(membername_t _tname) const;
+            bool is_color_array(membername_t _tname) const;
+            bool is_object_array(membername_t _tname) const;
 
+            array_t<bool>            get_bool_array(membername_t _tname) const;
+            array_t<s8>              get_s8_array(membername_t _tname) const;
+            array_t<u8>              get_u8_array(membername_t _tname) const;
+            array_t<s16>             get_s16_array(membername_t _tname) const;
+            array_t<u16>             get_u16_array(membername_t _tname) const;
+            array_t<s32>             get_s32_array(membername_t _tname) const;
+            array_t<u32>             get_u32_array(membername_t _tname) const;
+            array_t<fx16_t>          get_fx16_array(membername_t _tname) const;
+            array_t<fx32_t>          get_fx32_array(membername_t _tname) const;
+            array_t<f32>             get_f32_array(membername_t _tname) const;
             array_t<const char*>     get_string_array(membername_t _tname) const;
             array_t<locstr_t>        get_locstr_array(membername_t _tname) const;
             array_t<fileid_t>        get_fileid_array(membername_t _tname) const;
             array_t<const object_t*> get_object_array(membername_t _tname) const;
             array_t<color_t>         get_color_array(membername_t _tname) const;
-            array_t<vec3fx_t>        get_vec3f_t_array(membername_t _tname) const;
+            array_t<vec3fx_t>        get_vec3fx_array(membername_t _tname) const;
 
             template <class T>
             const T* get_compound(membername_t _tname) const;
             template <class T>
             array_t<const T*> get_compoundarray(membername_t _tname) const;
-
-            ///@name Array property accessors (indirect)
-            bool   get_bool(membername_t _tname, s32 index) const;
-            s8     get_s8(membername_t _tname, s32 index) const;
-            u8     get_u8(membername_t _tname, s32 index) const;
-            s16    get_s16(membername_t _tname, s32 index) const;
-            u16    get_u16(membername_t _tname, s32 index) const;
-            s32    get_s32(membername_t _tname, s32 index) const;
-            u32    get_u32(membername_t _tname, s32 index) const;
-            fx16_t get_fx16(membername_t _tname, s32 index) const;
-            fx32_t get_fx32(membername_t _tname, s32 index) const;
-            f32    get_f32(membername_t _tname, s32 index) const;
-
-            const char*     get_string(membername_t _tname, s32 index) const;
-            locstr_t        get_locstr(membername_t _tname, s32 index) const;
-            fileid_t        get_fileid(membername_t _tname, s32 index) const;
-            color_t         get_color(membername_t _tname, s32 index) const;
-            vec3f_t         get_vec3f(membername_t _tname, s32 index) const;
-            vec3fx_t        get_vec3fx(membername_t _tname, s32 index) const;
-            const object_t* get_object(membername_t _tname, s32 index) const;
 
         private:
             s32 m_member_count;

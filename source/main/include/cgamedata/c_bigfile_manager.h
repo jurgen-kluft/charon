@@ -28,23 +28,23 @@ namespace ncore
             bool open(const char* bigfileFilename, const char* bigTocFilename, const char* bigDatabaseFilename);
             void close();
 
-            bool exists(fileid_t id) const;                          ///< Return True if file exists in Archive
-            bool isEqual(fileid_t firstId, fileid_t secondId) const; ///< Return True if both fileIds reference the same physical file
+            bool exists(fileid_t id) const;                           ///< Return True if file exists in Archive
+            bool isEqual(fileid_t firstId, fileid_t secondId) const;  ///< Return True if both fileIds reference the same physical file
             bool isCompressed(fileid_t id) const;
 
-            const char* filename(fileid_t id) const; ///< Return Filename associated with file id
+            const char* filename(fileid_t id) const;  ///< Return Filename associated with file id
 
-            s32 size(fileid_t id) const;                                          ///< Return size of file
-            s32 read(fileid_t id, void* destination) const;                       ///< Read whole file in destination
-            s32 read(fileid_t id, s32 size, void* destination) const;             ///< Read part of file header in destination
-            s32 read(fileid_t id, s32 offset, s32 size, void* destination) const; ///< Read part of file in destination
+            s32 size(fileid_t id) const;                                           ///< Return size of file
+            s32 read(fileid_t id, void* destination) const;                        ///< Read whole file in destination
+            s32 read(fileid_t id, s32 size, void* destination) const;              ///< Read part of file header in destination
+            s32 read(fileid_t id, s32 offset, s32 size, void* destination) const;  ///< Read part of file in destination
 
         protected:
-            alloc_t*      mAlloc;
-            void*         mBasePtr;
-            mft_t*        mMFT;     ///< The .gdt file
-            fdb_t*        mFDB;     ///< The .gdf file
-            file_handle_t mBigfile; ///< The .gda file
+            alloc_t*             mAlloc;
+            void*                mBasePtr;
+            mft_t*               mMFT;      ///< The .gdt file
+            fdb_t*               mFDB;      ///< The .gdf file
+            nfile::file_handle_t mBigfile;  ///< The .gda file
         };
 
         // So the final bigfile will become something like this:
@@ -57,10 +57,10 @@ namespace ncore
             u32     mNumberOfTotalFileIds;
             u32     mNumberOfMFT;
             mft_t** mArrayOfMFT;
-            fdb_t** mArrayOfFDB; // In DEBUG mode if you want to know the filename of a fileid_t
+            fdb_t** mArrayOfFDB;  // In DEBUG mode if you want to know the filename of a fileid_t
         };
 
-    } // namespace ngd
-} // namespace ncore
+    }  // namespace ngd
+}  // namespace ncore
 
-#endif /// __HWFILE_BIG_FILE_MANAGER_H__
+#endif  /// __HWFILE_BIG_FILE_MANAGER_H__

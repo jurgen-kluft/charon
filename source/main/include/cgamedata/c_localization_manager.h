@@ -70,7 +70,7 @@ namespace ncore
             u32 const mNumStrings;
             u32 const mOffsetToOffsets;
             u32 const mOffsetToStrings;
-            // u32[] offsets
+            // u32[]    offsets
             // char[][] strings
         };
         data_t*     mData;
