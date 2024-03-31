@@ -103,13 +103,13 @@ namespace ncore
         };
 
         template <class T>
-        class raw_arr_t
+        class raw_array_t
         {
         public:
             inline array_t<T> array() const { return array_t<T>(mLength, (T const*)((const char*)&mOffset + mOffset)); }
 
         protected:
-            inline raw_arr_t(s32 length, s32 offset)
+            inline raw_array_t(s32 length, s32 offset)
                 : mLength(length)
                 , mOffset(offset)
             {
@@ -119,26 +119,26 @@ namespace ncore
         };
 
         template <class T>
-        class raw_obj_t
+        class raw_ptr_t
         {
         public:
             inline const T* ptr() const { return (const T*)((const char*)&mOffset + mOffset); }
 
         protected:
-            inline raw_obj_t(s32 offset)
+            inline raw_ptr_t(s32 offset)
                 : mOffset(offset)
             {
             }
             s32 const mOffset;
         };
 
-        class raw_str_t
+        class raw_string_t
         {
         public:
             inline string_t str() const { return string_t(mLength, ((const char*)&mOffset + mOffset)); }
 
         protected:
-            inline raw_str_t(s32 length, s32 offset)
+            inline raw_string_t(s32 length, s32 offset)
                 : mLength(length)
                 , mOffset(offset)
             {
