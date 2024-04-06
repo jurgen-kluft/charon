@@ -72,92 +72,23 @@ namespace ncore
             inline const char* str(u32 index) const { return mStrings + mOffsets[index]; }
 
         protected:
+            u32 const   mMagic;
             u32 const   mNumStrings;
             u32 const*  mOffsets;
             const char* mStrings;
         };
 
-        class raw_strtable_t
-        {
-        public:
-            inline s32         len() const { return mNumStrings; }
-            inline const char* operator[](u32 index) const { return strings() + offsets()[index]; }
-            strtable_t         strtable() const { return strtable_t(mNumStrings, offsets(), strings()); }
-
-        protected:
-            inline u32 const*  offsets() const { return (u32*)((u8*)this + mOffsetToOffsets); }
-            inline char const* strings() const { return (char const*)((u8*)this + mOffsetToStrings); }
-
-            inline raw_strtable_t(u64 magic, u32 numStrings, u32 offsetToOffsets, u32 offsetToStrings)
-                : mMagic(magic)
-                , mNumStrings(numStrings)
-                , mOffsetToOffsets(offsetToOffsets)
-                , mOffsetToStrings(offsetToStrings)
-            {
-            }
-
-            u64 const mMagic;
-            u32 const mNumStrings;
-            u32 const mOffsetToOffsets;
-            u32 const mOffsetToStrings;
-        };
-
-        template <class T>
-        class raw_array_t
-        {
-        public:
-            inline array_t<T> array() const { return array_t<T>(mLength, (T const*)((const char*)&mOffset + mOffset)); }
-
-        protected:
-            inline raw_array_t(s32 length, s32 offset)
-                : mLength(length)
-                , mOffset(offset)
-            {
-            }
-            s32 const mLength;
-            s32 const mOffset;
-        };
-
-        template <class T>
-        class raw_ptr_t
-        {
-        public:
-            inline const T* ptr() const { return (const T*)((const char*)&mOffset + mOffset); }
-
-        protected:
-            inline raw_ptr_t(s32 offset)
-                : mOffset(offset)
-            {
-            }
-            s32 const mOffset;
-        };
-
-        class raw_string_t
-        {
-        public:
-            inline string_t str() const { return string_t(mLength, ((const char*)&mOffset + mOffset)); }
-
-        protected:
-            inline raw_string_t(s32 length, s32 offset)
-                : mLength(length)
-                , mOffset(offset)
-            {
-            }
-
-            s32 const mLength;
-            s32 const mOffset;
-        };
 
         // e.g. rawenum_t<EConfig, u16>
         template <class T, class E>
-        class raw_enum_t
+        class enum_t
         {
         public:
             void get(T& e) const { e = (T)mEnum; }
             T    get() const { return (T)mEnum; }
 
         protected:
-            inline raw_enum_t(E e)
+            inline enum_t(E e)
                 : mEnum(e)
             {
             }
