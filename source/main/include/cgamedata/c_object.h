@@ -63,7 +63,8 @@ namespace ncore
         {
         public:
             inline strtable_t(u32 numStrings, u32 const* offsets, const char* strings)
-                : mNumStrings(numStrings)
+                : mMagic(0x54525453)
+                , mNumStrings(numStrings)
                 , mOffsets(offsets)
                 , mStrings(strings)
             {
@@ -72,12 +73,11 @@ namespace ncore
             inline const char* str(u32 index) const { return mStrings + mOffsets[index]; }
 
         protected:
-            u32 const   mMagic;
-            u32 const   mNumStrings;
+            u32         mMagic;  // 'STRT'
+            u32         mNumStrings;
             u32 const*  mOffsets;
             const char* mStrings;
         };
-
 
         // e.g. rawenum_t<EConfig, u16>
         template <class T, class E>
