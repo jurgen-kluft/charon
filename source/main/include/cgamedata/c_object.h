@@ -56,7 +56,7 @@ namespace ncore
 
         private:
             const char* m_str;
-            const s32   m_len;
+            const s64   m_len;
         };
 
         class strtable_t
