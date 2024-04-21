@@ -75,6 +75,7 @@ namespace ncore
         protected:
             u32         mMagic;  // 'STRT'
             u32         mNumStrings;
+            u32 const*  mHashes;
             u32 const*  mOffsets;
             const char* mStrings;
         };
