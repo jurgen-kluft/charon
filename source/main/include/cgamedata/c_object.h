@@ -63,7 +63,7 @@ namespace ncore
         {
         public:
             inline strtable_t(u32 numStrings, u32 const* offsets, const char* strings)
-                : mMagic(0x54525453)
+                : mMagic(0x36DF5DE5)
                 , mNumStrings(numStrings)
                 , mOffsets(offsets)
                 , mStrings(strings)
