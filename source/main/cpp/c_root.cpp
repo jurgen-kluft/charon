@@ -5,7 +5,7 @@
 
 namespace ncore
 {
-    namespace ngd
+    namespace charon
     {
         // #define TEST_RESOURCE_DATA
 

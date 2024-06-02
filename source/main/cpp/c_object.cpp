@@ -7,7 +7,7 @@
 
 namespace ncore
 {
-    namespace ngd
+    namespace charon
     {
         static const s32 sZeroMemory[]   = {0, 0, 0, 0};
         const vec3f_t    vec3f_t::sZero  = *((vec3f_t *)sZeroMemory);

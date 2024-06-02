@@ -8,7 +8,7 @@
 
 namespace ncore
 {
-    namespace ngd
+    namespace charon
     {
         // Constraints:
         //     Maximum file size = 2GB * 32 = 64GB
@@ -171,7 +171,7 @@ namespace ncore
             return f.isCompressed();
         }
 
-        ngd::string_t bigfile_t::filename(fileid_t id) const
+        charon::string_t bigfile_t::filename(fileid_t id) const
         {
 #if defined(_SUBMISSION)
             return string_t();
