@@ -3,8 +3,8 @@
 #include "cbase/c_integer.h"
 #include "cbase/c_printf.h"
 
-#include "cgamedata/c_localization_manager.h"
-#include "cgamedata/c_object.h"
+#include "charon/c_localization.h"
+#include "charon/c_object.h"
 
 namespace ncore
 {

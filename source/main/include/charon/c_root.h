@@ -1,5 +1,5 @@
-#ifndef __CGAMEDATA_ROOT_H__
-#define __CGAMEDATA_ROOT_H__
+#ifndef __CHARON_ROOT_H__
+#define __CHARON_ROOT_H__
 #include "ccore/c_target.h"
 #ifdef USE_PRAGMA_ONCE
 #    pragma once
@@ -40,4 +40,4 @@ namespace ncore
     }  // namespace ngd
 }  // namespace ncore
 
-#endif  /// __CGAMEDATA_ROOT_H__
+#endif  /// __CHARON_ROOT_H__

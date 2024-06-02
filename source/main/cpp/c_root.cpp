@@ -1,5 +1,5 @@
-#include "cgamedata/c_object.h"
-#include "cgamedata/c_root.h"
+#include "charon/c_object.h"
+#include "charon/c_root.h"
 #include "cfile/c_file.h"
 #include "cbase/c_allocator.h"
 

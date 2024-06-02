@@ -1,12 +1,5 @@
-//////////////////////////////////////////////////////////////////////////////////////////
-//  Fichier :       Maths/2dCurve.h                                                     //
-//  Creation :      201099 par Francois                                                 //
-//  Role :          Definition de la classe C2dFCurve qui represente un echantillonage  //
-//                  de courbe                                                           //
-//////////////////////////////////////////////////////////////////////////////////////////             
-
-#ifndef _2DCURVE_H_
-#define _2DCURVE_H_
+#ifndef __CHARON_2DCURVE_H__
+#define __CHARON_2DCURVE_H__
 
 #ifdef M_PRAGMA_ONCE
 #  pragma once
@@ -98,14 +91,14 @@ inline ncore::f32 C2dFCurve::fGetLastNegativeXFromEnd() const
 	if( mCurveInfo == NULL )
 		return 0.0f;
 
-	ncore::s32 i = mCurveInfo->iSize - 1; 
+	ncore::s32 i = mCurveInfo->iSize - 1;
 	while (i > 0)
 	{
 		if (mValues[i - 1] > 0)
 			return fGetAbscissa(i);
 		-- i;
 	}
-	return fGetAbscissa(0);  
+	return fGetAbscissa(0);
 }
 
 inline ncore::u32 C2dFCurve::iGetMagicNb() const
@@ -117,7 +110,7 @@ inline ncore::u32 C2dFCurve::iGetMagicNb() const
 	ASSERT(mCurveInfo->iSize == 0 || mValues != NULL);
 	ncore::u32 iMagicNb = 0;
 	ncore::s32 i;
-	for(i= 0; i < mCurveInfo->iSize; i++) 
+	for(i= 0; i < mCurveInfo->iSize; i++)
 		iMagicNb += * (ncore::u32*) &mValues[i];
 
 	return iMagicNb;
@@ -125,5 +118,5 @@ inline ncore::u32 C2dFCurve::iGetMagicNb() const
 
 
 
-#endif // _2DCURVE_H_
+#endif // __CHARON_2DCURVE_H__
 #endif

@@ -3,8 +3,8 @@
 #include "cbase/c_integer.h"
 #include "cfile/c_file.h"
 
-#include "cgamedata/c_bigfile_manager.h"
-#include "cgamedata/c_object.h"
+#include "charon/c_bigfile.h"
+#include "charon/c_object.h"
 
 namespace ncore
 {
@@ -190,12 +190,12 @@ namespace ncore
             return false;
         }
 
-        s64 bigfile_t::read(fileid_t id, void* destination) const 
-        { 
+        s64 bigfile_t::read(fileid_t id, void* destination) const
+        {
             fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
             if (!f.isValid())
                 return -1;
-            return read(id, 0, f.getFileSize(), destination); 
+            return read(id, 0, f.getFileSize(), destination);
         }
         s64 bigfile_t::read(fileid_t id, s32 size, void* destination) const { return read(id, 0, size, destination); }
         s64 bigfile_t::read(fileid_t id, s32 offset, s32 size, void* destination) const

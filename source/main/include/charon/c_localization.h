@@ -1,12 +1,12 @@
-#ifndef __CGAMEDATA_LANGUAGE_H__
-#define __CGAMEDATA_LANGUAGE_H__
+#ifndef __CHARON_LANGUAGE_H__
+#define __CHARON_LANGUAGE_H__
 #include "ccore/c_target.h"
 #ifdef USE_PRAGMA_ONCE
 #    pragma once
 #endif
 
-#include "cgamedata/c_object.h"
-#include "cgamedata/c_bigfile_manager.h"
+#include "charon/c_object.h"
+#include "charon/c_bigfile.h"
 
 namespace ncore
 {
@@ -84,4 +84,4 @@ namespace ncore
 
 }  // namespace ncore
 
-#endif  // __CGAMEDATA_LANGUAGE_H__
+#endif  // __CHARON_LANGUAGE_H__

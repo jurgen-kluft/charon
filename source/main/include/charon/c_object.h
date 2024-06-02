@@ -1,5 +1,5 @@
-#ifndef __CGAMEDATA_OBJECT_H__
-#define __CGAMEDATA_OBJECT_H__
+#ifndef __CHARON_OBJECT_H__
+#define __CHARON_OBJECT_H__
 #include "ccore/c_target.h"
 #ifdef USE_PRAGMA_ONCE
 #    pragma once
@@ -46,37 +46,43 @@ namespace ncore
         class string_t
         {
         public:
-            inline string_t(s32 len, const char* str)
-                : m_len(len)
+            inline string_t(s32 byteLen, s32 strLen, const char* str)
+                : m_bytes(byteLen)
+                , m_len(strLen)
                 , m_str(str)
             {
             }
-            inline s32         len() const { return m_len; }
+            inline s32         len() const { return (s32)m_len; }
             inline const char* str() const { return m_str; }
 
         private:
+            const u32   m_bytes;
+            const u32   m_len;
             const char* m_str;
-            const s64   m_len;
         };
 
         class strtable_t
         {
         public:
-            inline strtable_t(u32 numStrings, u32 const* offsets, const char* strings)
+            inline strtable_t(u32 numStrings, u32 const* byteLengths, u32 const* charLengths, u32 const* offsets, const char* strings)
                 : mMagic(0x36DF5DE5)
                 , mNumStrings(numStrings)
+                , mByteLengths(byteLengths)
+                , mCharLengths(charLengths)
                 , mOffsets(offsets)
                 , mStrings(strings)
             {
             }
-            inline s32         len() const { return mNumStrings; }
-            inline const char* str(u32 index) const { return mStrings + mOffsets[index]; }
+            inline s32       size() const { return mNumStrings; }
+            inline string_t  str(u32 index) const { return string_t(mByteLengths[index], mCharLengths[index], mStrings + mOffsets[index]); }
 
         protected:
             u32         mMagic;  // 'STRT'
             u32         mNumStrings;
             u32 const*  mHashes;
             u32 const*  mOffsets;
+            u32 const*  mCharLengths;
+            u32 const*  mByteLengths;
             const char* mStrings;
         };
 
@@ -267,4 +273,4 @@ namespace ncore
     }  // namespace ngd
 }  // namespace ncore
 
-#endif  /// __CGAMEDATA_OBJECT_H__
+#endif  /// __CHARON_OBJECT_H__

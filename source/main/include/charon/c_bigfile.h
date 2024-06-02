@@ -1,11 +1,12 @@
-#ifndef __CGAMEDATA_BIG_FILE_MANAGER_H__
-#define __CGAMEDATA_BIG_FILE_MANAGER_H__
+#ifndef __CHARON_BIG_FILE_MANAGER_H__
+#define __CHARON_BIG_FILE_MANAGER_H__
 #include "ccore/c_target.h"
 #ifdef USE_PRAGMA_ONCE
 #    pragma once
 #endif
 
 #include "cfile/c_file.h"
+#include "charon/c_object.h"
 
 namespace ncore
 {
@@ -17,6 +18,12 @@ namespace ncore
 
         struct mft_t;
         struct fdb_t;
+        struct hdb_t;
+
+        struct hash_t
+        {
+            u32 mHash[5]; // SHA1 hash, 160 bits
+        };
 
         class bigfile_t
         {
@@ -26,12 +33,13 @@ namespace ncore
             bool open(const char* bigfileFilename, const char* bigTocFilename, const char* bigDatabaseFilename);
             void close();
 
-            bool        exists(fileid_t id) const;                           // Return True if file exists in Archive
-            bool        isEqual(fileid_t firstId, fileid_t secondId) const;  // Return True if both fileIds reference the same physical file
-            bool        isCompressed(fileid_t id) const;                     //
-            const char* filename(fileid_t id) const;                         // Return Filename associated with file id
+            s32      index() const { return mIndex; }
+            bool     exists(fileid_t id) const;                           // Return True if file exists in Archive
+            bool     isEqual(fileid_t firstId, fileid_t secondId) const;  // Return True if both fileIds reference the same physical file
+            bool     isCompressed(fileid_t id) const;                     //
+            string_t filename(fileid_t id) const;                         // Return Filename associated with file id
 
-            s64 size(fileid_t id) const;                                           // Return size of file
+            s64 size(fileid_t id) const;                                           // Return size of a file
             s64 read(fileid_t id, void* destination) const;                        // Read whole file in destination
             s64 read(fileid_t id, s32 size, void* destination) const;              // Read part of file header in destination
             s64 read(fileid_t id, s32 offset, s32 size, void* destination) const;  // Read part of file in destination
@@ -42,6 +50,7 @@ namespace ncore
             mft_t*               mMFT;      // The .gdt file
             fdb_t*               mFDB;      // The .gdf file
             nfile::file_handle_t mBigfile;  // The .gda file
+            s32                  mIndex;    // The index of the bigfile
         };
 
         // So the final bigfile will become something like this:
@@ -51,13 +60,14 @@ namespace ncore
         class bigfile2_t
         {
         public:
-            u32     mNumberOfTotalFileIds;
-            u32     mNumberOfMFT;
-            mft_t** mArrayOfMFT;
-            fdb_t** mArrayOfFDB;  // In DEBUG mode if you want to know the filename of a fileid_t
+            s32     mIndex;             // The index of the bigfile
+            u32     mNumberOfSections;  // How many sections (bigfiles) are in this bigfile
+            mft_t** mArrayOfMFT;        // The tables with file offset and file size of a fileid_t
+            fdb_t** mArrayOfFDB;        // In DEBUG mode if you want to know the filename of a fileid_t
+            hdb_t** mArrayOfHDB;        // In DEBUG mode if you want to know the hash of a fileid_t
         };
 
     }  // namespace ngd
 }  // namespace ncore
 
-#endif  /// __HWFILE_BIG_FILE_MANAGER_H__
+#endif

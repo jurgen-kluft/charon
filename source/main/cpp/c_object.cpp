@@ -3,7 +3,7 @@
 #include "cbase/c_log.h"
 #include "cbase/c_va_list.h"
 
-#include "cgamedata/c_object.h"
+#include "charon/c_object.h"
 
 namespace ncore
 {

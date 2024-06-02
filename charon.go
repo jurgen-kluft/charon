@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/jurgen-kluft/ccode"
-	pkg "github.com/jurgen-kluft/cgamedata/package"
+	pkg "github.com/jurgen-kluft/charon/package"
 )
 
 func main() {
