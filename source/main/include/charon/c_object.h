@@ -9,7 +9,7 @@
 
 namespace ncore
 {
-    namespace ngd
+    namespace charon
     {
         // Forward declares
         class member_t;
@@ -46,6 +46,12 @@ namespace ncore
         class string_t
         {
         public:
+            inline string_t()
+                : m_bytes(0)
+                , m_len(0)
+                , m_str("null")
+            {
+            }
             inline string_t(s32 byteLen, s32 strLen, const char* str)
                 : m_bytes(byteLen)
                 , m_len(strLen)

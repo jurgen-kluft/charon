@@ -1,4 +1,4 @@
-# cgamedata, hierarchical data structure
+# charon, game data 
 
 A typed data (**immutable**) structure that starts at a root ``object_t*`` and that can contain many types of data.
 This data can be generated using ``https://github.com/jurgen-kluft/BuildSystem.Core``.
@@ -9,7 +9,7 @@ This data can be generated using ``https://github.com/jurgen-kluft/BuildSystem.C
 - vec2f, vec3f, vec4f
 - fileid_t
 - locstr_t
-- ``string*``
+- string_t
 - color_t
 - ``object_t*``
 - ``void*`` (serialized compound, should match C++ structure layout)

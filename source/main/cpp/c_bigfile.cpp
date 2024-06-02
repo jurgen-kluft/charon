@@ -18,7 +18,7 @@ namespace ncore
         struct fileinfo_t
         {
             inline u64 getFileSize() const { return (u64)(mFileSize & ~0x80000000) << 5; }
-            inline u64 getFileOffset() const { return (u64)(mFileOffset& ~0x80000000) << 5; }
+            inline u64 getFileOffset() const { return (u64)(mFileOffset & ~0x80000000) << 5; }
 
             inline bool isValid() const { return (mFileSize != 0xffffffff && mFileOffset != 0xffffffff); }
             inline bool isCompressed() const { return (mFileOffset & 0x80000000) != 0 ? true : false; }
@@ -57,9 +57,9 @@ namespace ncore
             s32          getFileIdCount(s32 index) const;
             array_t<u32> getFileIdArray(s32 index) const;
 
-            u32 mNumEntries;         // How many entries this TOC has
-            u32 mTocOffset;          // Where this TOC starts
-            u32 mFileDataBaseOffset; //
+            u32 mNumEntries;          // How many entries this TOC has
+            u32 mTocOffset;           // Where this TOC starts
+            u32 mFileDataBaseOffset;  //
         };
 
         fileinfo_t mft_t::getFileInfo(const void* base, fileid_t id) const
@@ -72,16 +72,22 @@ namespace ncore
         // Table - Filenames
         //     Char[] - Filename
         //
+        // Note: This looks very much like a string table, merge ?
         struct fdb_t
         {
-            const char* filename(fileid_t index) const;
+            string_t    filename(fileid_t index) const;
             s32         mNumEntries;
+            u32*        mOffsets;
+            u32*        mCharLengths;
+            u32*        mByteLengths;
+            const char* mStrings;
         };
 
-        const char* fdb_t::filename(fileid_t id) const
+        string_t fdb_t::filename(fileid_t id) const
         {
-            const s32* offset = (const s32*)((ptr_t)this + sizeof(fdb_t));
-            return (const char*)((ptr_t)this + sizeof(fdb_t) + sizeof(s32) * mNumEntries + offset[id & 0xffffffff]);
+            // const s32* offset = (const s32*)((ptr_t)this + sizeof(fdb_t));
+            // return (const char*)((ptr_t)this + sizeof(fdb_t) + sizeof(s32) * mNumEntries + offset[id & 0xffffffff]);
+            return string_t(mByteLengths[id & 0xffffffff], mCharLengths[id & 0xffffffff], mStrings + mOffsets[id & 0xffffffff]);
         }
 
         // The .bfa file containing all the files, uses the .mft file to obtain the
@@ -165,13 +171,12 @@ namespace ncore
             return f.isCompressed();
         }
 
-        const char* bigfile_t::filename(fileid_t id) const
+        ngd::string_t bigfile_t::filename(fileid_t id) const
         {
 #if defined(_SUBMISSION)
-            return "Null";
+            return string_t();
 #else
-            const char* f = mFDB->filename(id);
-            return f;
+            return mFDB->filename(id);
 #endif
         }
 
@@ -210,5 +215,5 @@ namespace ncore
             const s32 numBytesRead = (s32)(file_read(mBigfile, (u8*)destination, size));
             return numBytesRead;
         }
-    } // namespace ngd
-} // namespace ncore
+    }  // namespace ngd
+}  // namespace ncore

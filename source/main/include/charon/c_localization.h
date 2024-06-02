@@ -12,7 +12,7 @@ namespace ncore
 {
     class alloc_t;
 
-    namespace ngd
+    namespace charon
     {
         class bigfile_t;
     }
@@ -53,19 +53,19 @@ namespace ncore
 
         localization_t(alloc_t* allocator);
 
-        void init(ngd::object_t* root, ngd::fileid_t const* languageFileIds, ngd::bigfile_t* bigfile);
+        void init(charon::object_t* root, charon::fileid_t const* languageFileIds, charon::bigfile_t* bigfile);
         void exit();
 
         s8   getCurrentLanguage() const;
-        void loadCurrentLanguage(ngd::object_t* root, ngd::bigfile_t* bf, s8 language);
+        void loadCurrentLanguage(charon::object_t* root, charon::bigfile_t* bf, s8 language);
 
         // UTF-8
-        const char* getText(ngd::locstr_t lstr) const;
+        const char* getText(charon::locstr_t lstr) const;
 
     private:
         alloc_t*      mAllocator;
         s8            mCurrentLanguage;
-        ngd::fileid_t mLanguageFiles[LANGUAGE_COUNT];
+        charon::fileid_t mLanguageFiles[LANGUAGE_COUNT];
 
         struct data_t  // Exact file-format of a language file
         {

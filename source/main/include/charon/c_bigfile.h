@@ -12,7 +12,7 @@ namespace ncore
 {
     class alloc_t;
 
-    namespace ngd
+    namespace charon
     {
         typedef s64 fileid_t;
 
@@ -20,9 +20,9 @@ namespace ncore
         struct fdb_t;
         struct hdb_t;
 
-        struct hash_t
+        struct filename_hash_t
         {
-            u32 mHash[5]; // SHA1 hash, 160 bits
+            u32 m_data[4]; // CityHash, 128-bit hash
         };
 
         class bigfile_t

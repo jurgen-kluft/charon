@@ -9,7 +9,7 @@ namespace ncore
 {
     class alloc_t;
 
-    namespace ngd
+    namespace charon
     {
         class object_t;
         class strtable_t;

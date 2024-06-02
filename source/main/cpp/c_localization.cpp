@@ -19,11 +19,11 @@ namespace ncore
     {
         for (s32 i = 0; i < LANGUAGE_COUNT; ++i)
         {
-            mLanguageFiles[LANGUAGE_COUNT] = ngd::INVALID_FILEID;
+            mLanguageFiles[LANGUAGE_COUNT] = charon::INVALID_FILEID;
         }
     }
 
-    void localization_t::init(ngd::object_t* root, ngd::fileid_t const* languageFileIds, ngd::bigfile_t* bf)
+    void localization_t::init(charon::object_t* root, charon::fileid_t const* languageFileIds, charon::bigfile_t* bf)
     {
         mData            = nullptr;
         mStrings         = nullptr;
@@ -34,7 +34,7 @@ namespace ncore
         if (mData == nullptr)
         {
             XPRINT("Start get file id...\n");
-            ngd::array_t<ngd::fileid_t> locFiles = root->get_object(ngd::membername_t("Localization"))->get_fileid_array(ngd::membername_t("FileId"));
+            charon::array_t<charon::fileid_t> locFiles = root->get_object(charon::membername_t("Localization"))->get_fileid_array(charon::membername_t("FileId"));
             XPRINT("The file id list is init success.\n");
             mLanguageFileSize = 0;
 
@@ -42,8 +42,8 @@ namespace ncore
             printf("file id list : %d\n", va_t(n));
             for (s32 i = 0; i < n; i++)
             {
-                ngd::fileid_t fileId   = locFiles[i];
-                const s32     fileSize = (fileId != ngd::INVALID_FILEID) ? bf->size(fileId) : 0;
+                charon::fileid_t fileId   = locFiles[i];
+                const s32     fileSize = (fileId != charon::INVALID_FILEID) ? bf->size(fileId) : 0;
                 if (fileSize > mLanguageFileSize)
                     mLanguageFileSize = fileSize;
             }
@@ -63,12 +63,12 @@ namespace ncore
     }
 
     s8   localization_t::getCurrentLanguage() const { return mCurrentLanguage; }
-    void localization_t::loadCurrentLanguage(ngd::object_t* root, ngd::bigfile_t* bf, s8 language)
+    void localization_t::loadCurrentLanguage(charon::object_t* root, charon::bigfile_t* bf, s8 language)
     {
-        ngd::array_t<ngd::fileid_t> locFiles = root->get_object(ngd::membername_t("Localization"))->get_fileid_array(ngd::membername_t("FileId"));
-        ngd::fileid_t               fileId   = locFiles[(s32)language];
-        const s32                   fileSize = (fileId != ngd::INVALID_FILEID) ? bf->size(fileId) : 0;
-        const char*                 fileName = bf->filename(fileId);
+        charon::array_t<charon::fileid_t> locFiles = root->get_object(charon::membername_t("Localization"))->get_fileid_array(charon::membername_t("FileId"));
+        charon::fileid_t               fileId   = locFiles[(s32)language];
+        const s32                   fileSize = (fileId != charon::INVALID_FILEID) ? bf->size(fileId) : 0;
+        charon::string_t               fileName = bf->filename(fileId);
 
         mStrings = nullptr;
         mOffsets = nullptr;
@@ -99,7 +99,7 @@ namespace ncore
         mOffsets = nullptr;
     }
 
-    const char* localization_t::getText(ngd::locstr_t lstr) const
+    const char* localization_t::getText(charon::locstr_t lstr) const
     {
         if (lstr < 0 || lstr >= mData->mNumStrings)
         {
@@ -107,6 +107,5 @@ namespace ncore
         }
         return mStrings + mOffsets[lstr];
     }
-
 
 }  // namespace ncore
