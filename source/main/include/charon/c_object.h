@@ -43,6 +43,11 @@ namespace ncore
             s32 const m_length;
         };
 
+        // A standard byte buffer
+        struct buffer_t : array_t<byte>
+        {
+        };
+
         class string_t
         {
         public:
@@ -79,8 +84,8 @@ namespace ncore
                 , mStrings(strings)
             {
             }
-            inline s32       size() const { return mNumStrings; }
-            inline string_t  str(u32 index) const { return string_t(mByteLengths[index], mCharLengths[index], mStrings + mOffsets[index]); }
+            inline s32      size() const { return mNumStrings; }
+            inline string_t str(u32 index) const { return string_t(mByteLengths[index], mCharLengths[index], mStrings + mOffsets[index]); }
 
         protected:
             u32         mMagic;  // 'STRT'
@@ -276,7 +281,7 @@ namespace ncore
             array_t<const object_t*> objArray = get_object_array(_tname);
             return array_t<const T*>(objArray.size(), (const T*)&objArray[0]);
         }
-    }  // namespace ngd
+    }  // namespace charon
 }  // namespace ncore
 
 #endif  /// __CHARON_OBJECT_H__
