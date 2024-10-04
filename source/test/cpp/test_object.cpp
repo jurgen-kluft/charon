@@ -1,11 +1,11 @@
 #include "ccore/c_target.h"
-#include "ccore/c_allocator.h"
-#include "cfile/c_file.h"
 
 #include "cunittest/cunittest.h"
 #include "charon/test_allocator.h"
 #include "charon/c_object.h"
 #include "charon/c_root.h"
+#include "ccore/c_allocator.h"
+#include "cfile/c_file.h"
 
 using namespace ncore;
 
@@ -26,7 +26,7 @@ UNITTEST_SUITE_BEGIN(gamedata)
             u8*                  data     = (u8*)Allocator->allocate(dataSize);
             nfile::file_read(fh, data, dataSize);
 
-            ngd::root_t* root = (ngd::root_t*)data;
+            charon::root_t* root = (charon::root_t*)data;
 
             Allocator->deallocate(data);
         }
