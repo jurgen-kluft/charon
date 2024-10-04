@@ -2,11 +2,13 @@ package main
 
 import (
 	"github.com/jurgen-kluft/ccode"
-	pkg "github.com/jurgen-kluft/charon/package"
+	cpkg "github.com/jurgen-kluft/charon/package"
 )
 
 func main() {
-	ccode.Init()
-	ccode.GenerateFiles()
-	ccode.Generate(pkg.GetPackage())
+	if ccode.Init() {
+		pkg := cpkg.GetPackage()
+		ccode.GenerateFiles(pkg)
+		ccode.Generate(pkg)
+	}
 }
