@@ -1,4 +1,4 @@
-# charon, game data 
+# charon, game data (WIP)
 
 Provides a class called `bigfile_t` that acts as a game data archive from which you can load game data by the use of `fileid_t`.
 You can have many `bigfiles` on disk, and you can load their TOC (table of contents) into memory and then load data from the `bigfile`.
