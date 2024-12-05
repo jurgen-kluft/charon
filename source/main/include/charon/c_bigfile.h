@@ -18,48 +18,66 @@ namespace ncore
 
         struct gda_t;
         struct toc_t;
-        struct mft_t;
         struct fdb_t;
         struct hdb_t;
 
-        class bigfile_t
+        struct file_entry_t
         {
-        public:
-            bigfile_t(alloc_t* allocator);
+            file_entry_t()
+                : mFileOffset(0)
+                , mFileSize(0)
+                , mFileChildrenOffset(0)
+            {
+            }
 
-            bool open(const char* bigfileFilename, const char* bigTocFilename, const char* bigDatabaseFilename);
-            void close();
+            inline u64 getFileSize() const { return (u64)(mFileSize << 6); }
+            inline u64 getFileOffset() const { return (u64)(mFileOffset << 6); }
 
-            s32      index() const { return mIndex; }
-            bool     exists(fileid_t id) const;                           // Return True if file exists in Archive
-            bool     isEqual(fileid_t firstId, fileid_t secondId) const;  // Return True if both fileIds reference the same physical file
-            bool     isCompressed(fileid_t id) const;                     //
-            string_t filename(fileid_t id) const;                         // Return Filename associated with file id
+            inline bool isValid() const { return (mFileSize != 0 && mFileOffset != 0); }
+            inline bool isCompressed() const { return (mFileChildrenOffset & 0x1) != 0 ? true : false; }
+            inline bool hasChildren() const { return (mFileChildrenOffset & 0x2) != 0 ? true : false; }
+            inline s32  numChildren() const
+            {
+                if (hasChildren())
+                {
+                    s32 const* data = (s32 const*)((s8 const*)this + (s32)(mFileChildrenOffset & 0xffffffffc));
+                    return data[0];
+                }
+                return 0;
+            }
+            inline file_entry_t const* getChild(u32 index) const
+            {
+                s32 const* data   = (s32 const*)((s8 const*)this + (s32)(mFileChildrenOffset & 0xfffffffc));
+                s32 const  offset = data[index + 1];
+            }
 
-            s64 size(fileid_t id) const;                                           // Return size of a file
-            s64 read(fileid_t id, void* destination) const;                        // Read whole file in destination
-            s64 read(fileid_t id, s32 size, void* destination) const;              // Read part of file header in destination
-            s64 read(fileid_t id, s32 offset, s32 size, void* destination) const;  // Read part of file in destination
-
-        protected:
-            alloc_t* mAlloc;
-            void*    mBasePtr;  // The TOC of the bigfile in memory
-            s32      mIndex;    // Index of the bigfile in the bigfile manager
-            gda_t*   mGDA;      // The .gda file
-            toc_t*   mMFT;      // The TOC of the bigfile
-            fdb_t*   mFDB;      // In DEBUG mode if you want to know the filename of a fileid_t
-            hdb_t*   mHDB;      // In DEBUG mode if you want to know the hash of a fileid_t
+        private:
+            u32 const mFileOffset;         // FileOffset = mFileOffset * 64
+            u32 const mFileSize;           //
+            u32 const mFileChildrenOffset; //
         };
 
-        class bigfile_manager_t
+        struct bigfile_t;
+
+        struct bigfile_manager_t
         {
-        public:
+            void                init(alloc_t* allocator, const char* dirpath);                        // Initialize the bigfile manager
+            void                teardown();                                                           // Shutdown the big
+            bool                exists(fileid_t id) const;                                            // Return True if file exists in Archive
+            bool                isEqual(fileid_t firstId, fileid_t secondId) const;                   // Return True if both fileIds reference the same physical file
+            file_entry_t const* file(fileid_t id) const;                                              // Return FileEntry associated with file id
+            string_t            filename(fileid_t id) const;                                          // Return Filename associated with file id
+            s64                 fileRead(fileid_t id, void* destination) const;                       // Read whole file in destination
+            s64                 fileRead(fileid_t id, s32 size, void* destination) const;             // Read part of file header in destination
+            s64                 fileRead(fileid_t id, s32 offset, s32 size, void* destination) const; // Read part of file in destination
+
         private:
+            alloc_t*    mAllocator;
             s32         mNumBigfiles;
             bigfile_t** mBigfiles;
         };
 
-    }  // namespace charon
-}  // namespace ncore
+    } // namespace charon
+} // namespace ncore
 
 #endif
