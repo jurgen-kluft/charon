@@ -7,8 +7,7 @@ A `bigfile` has an index as an identifier and a `fileid_t` is a 64-bit identifie
 You can imagine that you have compiled many resources, like textures, models, materials, shaders, sounds, etc. into a `bigfile` and you can 
 load them into memory and use them in your game.
 
-A typed data (**immutable**) structure that starts at a root ``object_t*`` and that can contain many types of data.
-This data can be generated using ``https://github.com/jurgen-kluft/BuildSystem.Core``.
+Bigfile(s) can be generated using ``https://github.com/jurgen-kluft/BuildSystem.Core``.
 
 ## types
 
@@ -17,6 +16,5 @@ This data can be generated using ``https://github.com/jurgen-kluft/BuildSystem.C
 - locstr_t
 - string_t
 - color_t
-- ``object_t*``
 - ``void*`` (serialized compound, should match C++ structure layout)
 - ``array<T>`` (any of the above types)
