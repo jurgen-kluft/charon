@@ -1,6 +1,6 @@
 #include "cbase/c_allocator.h"
 #include "cbase/c_log.h"
-#include "cbase/c_integer.h"
+#include "ccore/c_math.h"
 #include "cfile/c_file.h"
 
 #include "charon/c_bigfile.h"
@@ -15,24 +15,48 @@ namespace ncore
         //     Maximum file offset = 2GB * 32 = 64GB
         //     Compression = High Bit in Offset
         //     IsArray = High Bit in Size
-        struct fileinfo_t
+
+        struct file_children_t
+        {
+            file_children_t()
+                : mNumEntries(0)
+                , mChildren(nullptr)
+            {
+            }
+            file_children_t(u32 numEntries, u32 const* children)
+                : mNumEntries(numEntries)
+                , mChildren(children)
+            {
+            }
+            inline u32                size() const { return mNumEntries; }
+            inline u32                operator[](u32 index) const { return mChildren[index]; }
+            inline const array_t<u32> array() const { return array_t<u32>(mNumEntries, mChildren); }
+
+        private:
+            const u32  mNumEntries;
+            const u32* mChildren;
+        };
+
+        struct file_entry_t
         {
             inline u64 getFileSize() const { return (u64)(mFileSize & ~0x80000000) << 5; }
             inline u64 getFileOffset() const { return (u64)(mFileOffset & ~0x80000000) << 5; }
 
             inline bool isValid() const { return (mFileSize != 0xffffffff && mFileOffset != 0xffffffff); }
-            inline bool isCompressed() const { return (mFileOffset & 0x80000000) != 0 ? true : false; }
+            inline bool isCompressed() const { return (mFileChildrenOffset & 0x40000000) != 0 ? true : false; }
 
-            inline bool               hasFileIdArray() const { return (mFileSize & 0x80000000) != 0 ? true : false; }
-            inline const array_t<u32> getFileIdArray(const void* base)
+            inline bool            hasChildren() const { return (mFileChildrenOffset & 0x80000000) != 0 ? true : false; }
+            inline file_children_t getChildrenArray() const
             {
-                u32 const* data = ((u32 const*)base + mFileOffset);
-                return array_t<u32>(data[0], data + 1);
+                // Offsets are relative to its own position
+                u32 const* data = (u32 const*)((u32 const*)this + (mFileChildrenOffset & 0x3fffffff));
+                return file_children_t(data[0], data + 1);
             }
 
         private:
-            u32 mFileOffset;
-            u32 mFileSize;
+            u32 mFileOffset;          // FileOffset = mFileOffset * 64
+            u32 mFileSize;            // FileSize
+            u32 mFileChildrenOffset;  // 0x80000000 = Has children, 0x40000000 = Is compressed
         };
 
         // Header
@@ -53,20 +77,44 @@ namespace ncore
 
         struct mft_t
         {
-            fileinfo_t   getFileInfo(const void* base, fileid_t index) const;
-            s32          getFileIdCount(s32 index) const;
-            array_t<u32> getFileIdArray(s32 index) const;
+            file_entry_t    getFileInfo(fileid_t index) const;
+            s32             getFileCount(s32 index) const;
+            file_children_t getFileChildren(s32 index) const;
 
-            u32 mNumEntries;          // How many entries this TOC has
-            u32 mTocOffset;           // Where this TOC starts
-            u32 mFileDataBaseOffset;  //
+        private:
+            const u32 mTocOffset;  // Where this TOC starts (relative to itself)
+            const u32 mTocCount;   // How many entries this TOC has
         };
 
-        fileinfo_t mft_t::getFileInfo(const void* base, fileid_t id) const
+        file_entry_t mft_t::getFileInfo(fileid_t id) const
         {
-            const fileinfo_t* table = (const fileinfo_t*)((ptr_t)base + mTocOffset);
+            const file_entry_t* table = (const file_entry_t*)((const byte*)this + mTocOffset);
             return table[id & 0xffffffff];
         }
+
+        s32 mft_t::getFileCount(s32 index) const
+        {
+            const file_entry_t* table = (const file_entry_t*)((const byte*)this + mTocOffset);
+            const file_entry_t& entry = table[index & 0xffffffff];
+            return entry.hasChildren() ? entry.getChildrenArray().size() : 0;
+        }
+
+        file_children_t mft_t::getFileChildren(s32 index) const
+        {
+            const file_entry_t* table = (const file_entry_t*)((const byte*)this + mTocOffset);
+            const file_entry_t& entry = table[index & 0xffffffff];
+            return entry.hasChildren() ? entry.getChildrenArray() : file_children_t();
+        }
+
+        struct toc_t
+        {
+            s32          numSections() const { return mNumSections; }
+            const mft_t* getSection(s32 index) const { return &sectionArray()[index & 0xffffffff]; }
+
+        private:
+            const mft_t* sectionArray() const { return (const mft_t*)((const byte*)this + sizeof(u32)); }
+            const u32    mNumSections;
+        };
 
         // Table - Filename offsets
         // Table - Filenames
@@ -95,10 +143,10 @@ namespace ncore
 
         bigfile_t::bigfile_t(alloc_t* allocator)
         {
-            mAlloc   = allocator;
-            mMFT     = nullptr;
-            mFDB     = nullptr;
-            mBigfile = nfile::file_handle_t();
+            mAlloc = allocator;
+            mMFT   = nullptr;
+            mFDB   = nullptr;
+            mGDA   = nullptr;
         }
 
         bool bigfile_t::open(const char* bigfileFilename, const char* bigTocFilename, const char* bigDatabaseFilename)
@@ -161,13 +209,13 @@ namespace ncore
 
         bool bigfile_t::exists(fileid_t id) const
         {
-            fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
+            file_entry_t f = mMFT->getFileInfo(mBasePtr, id);
             return f.isValid();
         }
 
         bool bigfile_t::isCompressed(fileid_t id) const
         {
-            fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
+            file_entry_t f = mMFT->getFileInfo(mBasePtr, id);
             return f.isCompressed();
         }
 
@@ -182,14 +230,14 @@ namespace ncore
 
         s64 bigfile_t::size(fileid_t id) const
         {
-            fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
+            file_entry_t f = mMFT->getFileInfo(mBasePtr, id);
             return f.getFileSize();
         }
 
         bool bigfile_t::isEqual(fileid_t firstId, fileid_t secondId) const
         {
-            fileinfo_t f1 = mMFT->getFileInfo(mBasePtr, firstId);
-            fileinfo_t f2 = mMFT->getFileInfo(mBasePtr, secondId);
+            file_entry_t f1 = mMFT->getFileInfo(mBasePtr, firstId);
+            file_entry_t f2 = mMFT->getFileInfo(mBasePtr, secondId);
             if (f1.isValid() && f2.isValid())
                 return (f1.getFileOffset() == f2.getFileOffset());
             return false;
@@ -197,7 +245,7 @@ namespace ncore
 
         s64 bigfile_t::read(fileid_t id, void* destination) const
         {
-            fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
+            file_entry_t f = mMFT->getFileInfo(mBasePtr, id);
             if (!f.isValid())
                 return -1;
             return read(id, 0, f.getFileSize(), destination);
@@ -205,7 +253,7 @@ namespace ncore
         s64 bigfile_t::read(fileid_t id, s32 size, void* destination) const { return read(id, 0, size, destination); }
         s64 bigfile_t::read(fileid_t id, s32 offset, s32 size, void* destination) const
         {
-            fileinfo_t f = mMFT->getFileInfo(mBasePtr, id);
+            file_entry_t f = mMFT->getFileInfo(mBasePtr, id);
             if (!f.isValid())
                 return -1;
 
@@ -215,5 +263,5 @@ namespace ncore
             const s32 numBytesRead = (s32)(file_read(mBigfile, (u8*)destination, size));
             return numBytesRead;
         }
-    }  // namespace ngd
+    }  // namespace charon
 }  // namespace ncore

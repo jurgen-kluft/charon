@@ -16,14 +16,11 @@ namespace ncore
     {
         typedef s64 fileid_t;
 
+        struct gda_t;
+        struct toc_t;
         struct mft_t;
         struct fdb_t;
         struct hdb_t;
-
-        struct filename_hash_t
-        {
-            u32 m_data[4]; // CityHash, 128-bit hash
-        };
 
         class bigfile_t
         {
@@ -45,29 +42,24 @@ namespace ncore
             s64 read(fileid_t id, s32 offset, s32 size, void* destination) const;  // Read part of file in destination
 
         protected:
-            alloc_t*             mAlloc;
-            void*                mBasePtr;
-            mft_t*               mMFT;      // The .gdt file
-            fdb_t*               mFDB;      // The .gdf file
-            nfile::file_handle_t mBigfile;  // The .gda file
-            s32                  mIndex;    // The index of the bigfile
+            alloc_t* mAlloc;
+            void*    mBasePtr;  // The TOC of the bigfile in memory
+            s32      mIndex;    // Index of the bigfile in the bigfile manager
+            gda_t*   mGDA;      // The .gda file
+            toc_t*   mMFT;      // The TOC of the bigfile
+            fdb_t*   mFDB;      // In DEBUG mode if you want to know the filename of a fileid_t
+            hdb_t*   mHDB;      // In DEBUG mode if you want to know the hash of a fileid_t
         };
 
-        // So the final bigfile will become something like this:
-        // NOTE: Localization data should be packed into a specific Bigfile, and the language object
-        //       should have a FileId to each defined language. If the language is not available it
-        //       can redirect to English.
-        class bigfile2_t
+        class bigfile_manager_t
         {
         public:
-            s32     mIndex;             // The index of the bigfile
-            u32     mNumberOfSections;  // How many sections (bigfiles) are in this bigfile
-            mft_t** mArrayOfMFT;        // The tables with file offset and file size of a fileid_t
-            fdb_t** mArrayOfFDB;        // In DEBUG mode if you want to know the filename of a fileid_t
-            hdb_t** mArrayOfHDB;        // In DEBUG mode if you want to know the hash of a fileid_t
+        private:
+            s32         mNumBigfiles;
+            bigfile_t** mBigfiles;
         };
 
-    }  // namespace ngd
+    }  // namespace charon
 }  // namespace ncore
 
 #endif
