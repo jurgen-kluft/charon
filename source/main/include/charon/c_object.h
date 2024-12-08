@@ -16,7 +16,8 @@ namespace ncore
         class object_t;
         class strtable_t;
 
-        template <class T> class array_t
+        template <class T>
+        class array_t
         {
         public:
             inline array_t()
@@ -78,6 +79,14 @@ namespace ncore
             }
         };
 
+        template <typename T>
+        struct data_t
+        {
+            T*        m_ptr;
+            const s32 m_offset;
+            const s32 m_size;
+        };
+
         class strtable_t
         {
         public:
@@ -94,7 +103,7 @@ namespace ncore
             inline string_t str(u32 index) const { return string_t(mByteLengths[index], mCharLengths[index], mStrings + mOffsets[index]); }
 
         protected:
-            u32         mMagic; // 'STRT'
+            u32         mMagic;  // 'STRT'
             u32         mNumStrings;
             u32 const*  mHashes;
             u32 const*  mOffsets;
@@ -103,8 +112,9 @@ namespace ncore
             const char* mStrings;
         };
 
-        // e.g. rawenum_t<EConfig, u16>
-        template <class T, class E> class enum_t
+        // e.g. enum_t<EConfig, u16>
+        template <class T, class E>
+        class enum_t
         {
         public:
             void get(T& e) const { e = (T)mEnum; }
@@ -142,7 +152,6 @@ namespace ncore
 
         const fileid_t INVALID_FILEID = -1;
         const locstr_t INVALID_LOCSTR = -1;
-
 
         // Examples:
         //		const object_t* track   = root->get_object(membername_t("main"))->get_object(membername_t("tracks"))->get_object(membername_t("track1"));
@@ -211,8 +220,10 @@ namespace ncore
             array_t<const object_t*> get_object_array(membername_t _tname) const;
             array_t<color_t>         get_color_array(membername_t _tname) const;
 
-            template <class T> const T*          get_compound(membername_t _tname) const;
-            template <class T> array_t<const T*> get_compoundarray(membername_t _tname) const;
+            template <class T>
+            const T* get_compound(membername_t _tname) const;
+            template <class T>
+            array_t<const T*> get_compoundarray(membername_t _tname) const;
 
         private:
             s32 m_member_count;
@@ -221,14 +232,19 @@ namespace ncore
             const void*     get_compound(membername_t _tname) const;
         };
 
-        template <class T> const T* object_t::get_compound(membername_t _tname) const { return (const T*)get_compound(_tname); }
+        template <class T>
+        const T* object_t::get_compound(membername_t _tname) const
+        {
+            return (const T*)get_compound(_tname);
+        }
 
-        template <class T> array_t<const T*> object_t::get_compoundarray(membername_t _tname) const
+        template <class T>
+        array_t<const T*> object_t::get_compoundarray(membername_t _tname) const
         {
             array_t<const object_t*> objArray = get_object_array(_tname);
             return array_t<const T*>(objArray.size(), (const T*)&objArray[0]);
         }
-    } // namespace charon
-} // namespace ncore
+    }  // namespace charon
+}  // namespace ncore
 
-#endif /// __CHARON_OBJECT_H__
+#endif  /// __CHARON_OBJECT_H__

@@ -21,6 +21,8 @@ namespace ncore
         struct fdb_t;
         struct hdb_t;
 
+        struct bigfile_t;
+
         struct file_entry_t
         {
             file_entry_t()
@@ -52,32 +54,62 @@ namespace ncore
             }
 
         private:
-            u32 const mFileOffset;         // FileOffset = mFileOffset * 64
-            u32 const mFileSize;           //
-            u32 const mFileChildrenOffset; //
+            u32 const mFileOffset;          // FileOffset = mFileOffset * 64
+            u32 const mFileSize;            //
+            u32 const mFileChildrenOffset;  //
         };
 
-        struct bigfile_t;
+        struct bigfile_reader_t
+        {
+            virtual ~bigfile_reader_t() {}
+            virtual s64   fileRead(fileid_t id, void* destination) const                       = 0;  // Read whole file in destination
+            virtual s64   fileRead(fileid_t id, s32 size, void* destination) const             = 0;  // Read part of file header in destination
+            virtual s64   fileRead(fileid_t id, s32 offset, s32 size, void* destination) const = 0;  // Read part of file in destination
+            virtual void* fileRead(fileid_t id, alloc_t* allocator) const                      = 0;  // Read whole file in memory allocated using allocator
+        };
+
+        template <typename T>
+        bool g_LoadObject(fileid_t id, T*& object, bigfile_reader_t const* bigfile, alloc_t* allocator)
+        {
+            if (object != nullptr)
+                return true;
+
+            void* mem = bigfile->fileRead(id, allocator);
+            if (mem == nullptr)
+                return false;
+
+            object = new (mem) T;
+            return true;
+        }
+
+        template <typename T>
+        void g_UnloadObject(T*& object, alloc_t* allocator)
+        {
+            if (object != nullptr)
+            {
+                g_deallocate(allocator, object);
+                object = nullptr;
+            }
+        }
 
         struct bigfile_manager_t
         {
-            void                init(alloc_t* allocator, const char* dirpath);                        // Initialize the bigfile manager
-            void                teardown();                                                           // Shutdown the big
-            bool                exists(fileid_t id) const;                                            // Return True if file exists in Archive
-            bool                isEqual(fileid_t firstId, fileid_t secondId) const;                   // Return True if both fileIds reference the same physical file
-            file_entry_t const* file(fileid_t id) const;                                              // Return FileEntry associated with file id
-            string_t            filename(fileid_t id) const;                                          // Return Filename associated with file id
-            s64                 fileRead(fileid_t id, void* destination) const;                       // Read whole file in destination
-            s64                 fileRead(fileid_t id, s32 size, void* destination) const;             // Read part of file header in destination
-            s64                 fileRead(fileid_t id, s32 offset, s32 size, void* destination) const; // Read part of file in destination
+            void                init(alloc_t* allocator, const char* dirpath);       // Initialize the bigfile manager
+            void                teardown();                                          // Shutdown the big
+            bool                exists(fileid_t id) const;                           // Return True if file exists in Archive
+            bool                isEqual(fileid_t firstId, fileid_t secondId) const;  // Return True if both fileIds reference the same physical file
+            file_entry_t const* file(fileid_t id) const;                             // Return FileEntry associated with file id
+            string_t            filename(fileid_t id) const;                         // Return Filename associated with file id
+            bigfile_reader_t*   reader() const;                                      // Get the reader for the bigfile
 
         private:
-            alloc_t*    mAllocator;
-            s32         mNumBigfiles;
-            bigfile_t** mBigfiles;
+            alloc_t*          mAllocator;
+            s32               mNumBigfiles;
+            bigfile_t**       mBigfiles;
+            bigfile_reader_t* mReader;
         };
 
-    } // namespace charon
-} // namespace ncore
+    }  // namespace charon
+}  // namespace ncore
 
 #endif
