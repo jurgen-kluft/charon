@@ -28,7 +28,6 @@ namespace ncore
             void close(alloc_t* allocator);
 
             bool                exists(fileid_t id) const;                                             // Return True if file exists in Archive
-            bool                isEqual(fileid_t firstId, fileid_t secondId) const;                    // Return True if both fileIds reference the same physical file
             file_entry_t const* file(fileid_t id) const;                                               // Return FileEntry associated with file id
             string_t            filename(fileid_t id) const;                                           // Return Filename associated with file id
             s64                 fileRead(fileid_t id, void* destination) const;                        // Read whole file in destination
@@ -100,42 +99,70 @@ namespace ncore
             return false;
         }
 
-        bool bigfiles_imp_t::isEqual(fileid_t firstId, fileid_t secondId) const {}
-
         file_entry_t const* bigfiles_imp_t::file(fileid_t id) const
         {
-            // todo
+            if (id.getBigfileIndex() < mNumBigfiles)
+            {
+                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
+                return bigfile != nullptr ? bigfile->file(id) : nullptr;
+            }
             return nullptr;
         }
 
         string_t bigfiles_imp_t::filename(fileid_t id) const
         {
-            // todo
+            if (id.getBigfileIndex() < mNumBigfiles)
+            {
+                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
+                return bigfile != nullptr ? bigfile->filename(id) : string_t();
+            }
             return string_t();
         }
 
         s64 bigfiles_imp_t::fileRead(fileid_t id, void* destination) const
         {
-            // todo
+            if (id.getBigfileIndex() < mNumBigfiles)
+            {
+                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
+                return bigfile != nullptr ? bigfile->fileRead(id, destination) : 0;
+            }
             return 0;
         }
 
         s64 bigfiles_imp_t::fileRead(fileid_t id, s32 size, void* destination) const
         {
-            // todo
+            if (id.getBigfileIndex() < mNumBigfiles)
+            {
+                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
+                return bigfile != nullptr ? bigfile->fileRead(id, size, destination) : 0;
+            }
             return 0;
         }
 
         s64 bigfiles_imp_t::fileRead(fileid_t id, s32 offset, s32 size, void* destination) const
         {
-            // todo
+            if (id.getBigfileIndex() < mNumBigfiles)
+            {
+                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
+                return bigfile != nullptr ? bigfile->fileRead(id, offset, size, destination) : 0;
+            }
             return 0;
         }
 
         void* bigfiles_imp_t::fileRead(fileid_t id, alloc_t* allocator) const
         {
-            // todo
-            return 0;
+            if (id.getBigfileIndex() < mNumBigfiles)
+            {
+                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
+                file_entry_t const* entry = bigfile != nullptr ? bigfile->file(id) : nullptr;
+                if (entry != nullptr)
+                {
+                    u8* data = g_allocate_array<byte>(allocator, entry->getFileSize());
+                    bigfile->fileRead(id, entry->getFileSize(), data);
+                    return data;
+                }
+            }
+            return nullptr;
         }
 
         // MFT
@@ -228,7 +255,7 @@ namespace ncore
         //   Int32: NumSections
         //   Array: SectionOffset[NumSections]
         //   Section:
-        //     Array: HashValue[NumFiles]
+        //     Array: u64[NumFiles]
         //   End
         // End
         struct hdb_t
@@ -333,15 +360,6 @@ namespace ncore
 
         file_entry_t const* bigfile_t::file(fileid_t id) const { return mTOC->getFileInfo(id); }
         charon::string_t    bigfile_t::filename(fileid_t id) const { return mFDB != nullptr ? mFDB->getFilename(id) : charon::string_t(); }
-
-        bool bigfile_t::isEqual(fileid_t firstId, fileid_t secondId) const
-        {
-            file_entry_t const* f1 = mTOC->getFileInfo(firstId);
-            file_entry_t const* f2 = mTOC->getFileInfo(secondId);
-            if (f1->isValid() && f2->isValid())
-                return (f1->getFileOffset() == f2->getFileOffset());
-            return false;
-        }
 
         s64 bigfile_t::fileRead(fileid_t id, void* destination) const
         {
