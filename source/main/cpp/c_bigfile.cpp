@@ -10,8 +10,18 @@ namespace ncore
 {
     namespace charon
     {
-        struct bigfile_t
+        // Constraints:
+        //     Maximum file size = 4GB
+        //     Maximum file offset = 4GB * 64 = 256GB
+        //     Compression = FileChildrenOffset & 0x1
+        //     HasChildren = FileChildrenOffset & 0x2
+
+        // ------------------------------------------------------------------------------------------------
+        // ------- Bigfile --------------------------------------------------------------------------------
+        // ------------------------------------------------------------------------------------------------
+        class bigfile_t
         {
+        public:
             bigfile_t();
 
             s32  open(alloc_t* allocator, const char* bigfileFilename, const char* bigTocFilename, const char* bigDatabaseFilename);
@@ -33,18 +43,100 @@ namespace ncore
             hdb_t* mHDB;      // In DEBUG mode if you want to know the hash of a fileid_t
         };
 
-        // Constraints:
-        //     Maximum file size = 4GB
-        //     Maximum file offset = 4GB * 64 = 256GB
-        //     Compression = FileChildrenOffset & 0x1
-        //     HasChildren = FileChildrenOffset & 0x2
+        // ------------------------------------------------------------------------------------------------
+        // ------- Bigfiles, the actual implementation ----------------------------------------------------
+        // ------------------------------------------------------------------------------------------------
 
-        static const file_entry_t s_invalidFileEntry;
+        class bigfiles_imp_t : public bigfile_reader_t
+        {
+        public:
+            void                setup(alloc_t* allocator, s32 maxNumBigfiles);
+            void                teardown();
+            bool                exists(fileid_t id) const;
+            bool                isEqual(fileid_t firstId, fileid_t secondId) const;
+            file_entry_t const* file(fileid_t id) const;
+            string_t            filename(fileid_t id) const;
+            s64                 fileRead(fileid_t id, void* destination) const override;
+            s64                 fileRead(fileid_t id, s32 size, void* destination) const override;
+            s64                 fileRead(fileid_t id, s32 offset, s32 size, void* destination) const override;
+            void*               fileRead(fileid_t id, alloc_t* allocator) const override;
 
-        // TOC
-        //     Int32: Toc Offset
-        //     Int32: Toc Count
-        //     MFT[]: Array
+            alloc_t*    mAllocator;
+            s32         mNumBigfiles;
+            s32         mMaxNumBigfiles;
+            bigfile_t** mBigfiles;
+        };
+
+        void bigfiles_imp_t::setup(alloc_t* allocator, s32 maxNumBigfiles)
+        {
+            mAllocator      = allocator;
+            mNumBigfiles    = 0;
+            mMaxNumBigfiles = maxNumBigfiles;
+            mBigfiles       = g_allocate_array_and_clear<bigfile_t*>(allocator, maxNumBigfiles);
+        }
+
+        void bigfiles_imp_t::teardown()
+        {
+            for (s32 i = 0; i < mNumBigfiles; ++i)
+            {
+                if (mBigfiles[i] != nullptr)
+                {
+                    mBigfiles[i]->close(mAllocator);
+                    g_deallocate(mAllocator, mBigfiles[i]);
+                    mBigfiles[i] = nullptr;
+                }
+            }
+            g_deallocate(mAllocator, mBigfiles);
+            mAllocator = nullptr;
+        }
+
+        bool bigfiles_imp_t::exists(fileid_t id) const
+        {
+            if (id.getBigfileIndex() < mNumBigfiles)
+            {
+                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
+                return bigfile != nullptr && bigfile->exists(id);
+            }
+            return false;
+        }
+
+        bool bigfiles_imp_t::isEqual(fileid_t firstId, fileid_t secondId) const {}
+
+        file_entry_t const* bigfiles_imp_t::file(fileid_t id) const
+        {
+            // todo
+            return nullptr;
+        }
+
+        string_t bigfiles_imp_t::filename(fileid_t id) const
+        {
+            // todo
+            return string_t();
+        }
+
+        s64 bigfiles_imp_t::fileRead(fileid_t id, void* destination) const
+        {
+            // todo
+            return 0;
+        }
+
+        s64 bigfiles_imp_t::fileRead(fileid_t id, s32 size, void* destination) const
+        {
+            // todo
+            return 0;
+        }
+
+        s64 bigfiles_imp_t::fileRead(fileid_t id, s32 offset, s32 size, void* destination) const
+        {
+            // todo
+            return 0;
+        }
+
+        void* bigfiles_imp_t::fileRead(fileid_t id, alloc_t* allocator) const
+        {
+            // todo
+            return 0;
+        }
 
         // MFT
         //     Int32: Toc Offset
@@ -57,7 +149,6 @@ namespace ncore
         //       Many {Int32:Count, Index[]}
         //     End
         // End
-
         struct mft_t
         {
             file_entry_t const* getFileInfo(fileid_t index) const;
@@ -76,6 +167,11 @@ namespace ncore
             return (index < mTocCount) ? &table[index] : &s_invalidFileEntry;
         }
 
+        // TOC
+        //     Int32: Toc Offset
+        //     Int32: Toc Count
+        //     MFT[]: Array
+        // End
         struct toc_t
         {
             file_entry_t const* getFileInfo(fileid_t index) const;
@@ -94,18 +190,18 @@ namespace ncore
 
         struct gda_t
         {
-            bool isValid() const { return fd.isValid(); }
-
+            bool                 isValid() const { return fd.isValid(); }
             nfile::file_handle_t fd;
         };
 
         // FDB is a file containing all the filenames of the files in the bigfile
-        // Int32: NumSections
-        // Array: SectionOffset[NumSections]
-        // Section:
-        //   Array: FilenameOffset[NumFiles]
+        //   Int32: NumSections
+        //   Array: SectionOffset[NumSections]
+        //   Section:
+        //     Array: FilenameOffset[NumFiles]
+        //   End
+        //   Array: {void*, NumBytes, Count}
         // End
-        // Array: {NumBytes, NumRunes, }[]
         struct fdb_t
         {
             string_t getFilename(fileid_t id) const;
@@ -114,14 +210,48 @@ namespace ncore
 
         string_t fdb_t::getFilename(fileid_t id) const
         {
+            u32 bigfileIndex = id.getBigfileIndex();
+            if (mNumSections == 1)
+                bigfileIndex = 0;
+
             u32 const* sectionOffsetArray = (u32*)((byte*)this + sizeof(u32));
-            u32 const  sectionOffset      = sectionOffsetArray[id.getBigfileIndex()];
+            u32 const  sectionOffset      = sectionOffsetArray[bigfileIndex];
             u32 const* section            = (u32*)((byte*)this + sectionOffset);
             u32 const  filenameOffset     = section[id.getFileIndex()];
             u32 const* filename           = (u32*)((byte*)section + filenameOffset);
             u32 const  numBytes           = filename[0];
             u32 const  numRunes           = filename[1];
             return charon::string_t(numBytes, numRunes, (const char*)&filename[2]);
+        }
+
+        // HDB is a file containing all the hash values of the files in the bigfile
+        //   Int32: NumSections
+        //   Array: SectionOffset[NumSections]
+        //   Section:
+        //     Array: HashValue[NumFiles]
+        //   End
+        // End
+        struct hdb_t
+        {
+            u64 getHash(fileid_t id) const;
+            u32 mNumSections;
+        };
+
+        u64 hdb_t::getHash(fileid_t id) const
+        {
+            u32 bigfileIndex = id.getBigfileIndex();
+            if (mNumSections == 1)
+                bigfileIndex = 0;
+            u32 const* sectionOffsetArray = (u32*)((byte*)this + sizeof(u32)) + bigfileIndex * 2;
+            u32 const  sectionOffset      = *sectionOffsetArray++;
+            u32 const  sectionCount       = *sectionOffsetArray++;
+            u64 const* sectionHashes      = (u64*)((byte*)this + sectionOffset);
+            if (id.getFileIndex() < sectionCount)
+            {
+                u32 const hash = sectionHashes[id.getFileIndex()];
+                return hash;
+            }
+            return 0;
         }
 
         // The .bfa file containing all the files, uses the .mft file to obtain the
@@ -202,8 +332,7 @@ namespace ncore
         }
 
         file_entry_t const* bigfile_t::file(fileid_t id) const { return mTOC->getFileInfo(id); }
-
-        charon::string_t bigfile_t::filename(fileid_t id) const { return mFDB != nullptr ? mFDB->getFilename(id) : charon::string_t(); }
+        charon::string_t    bigfile_t::filename(fileid_t id) const { return mFDB != nullptr ? mFDB->getFilename(id) : charon::string_t(); }
 
         bool bigfile_t::isEqual(fileid_t firstId, fileid_t secondId) const
         {
@@ -233,5 +362,30 @@ namespace ncore
             nfile::file_seek(mGDA->fd, seekpos, nfile::seek_mode_t::SEEK_MODE_BEG);
             return nfile::file_read(mGDA->fd, (u8*)destination, size);
         }
+
+        // ------------------------------------------------------------------------------------------------
+        // ------- Bigfiles Implementation ----------------------------------------------------------------
+        // ------------------------------------------------------------------------------------------------
+
+        void bigfiles_t::init(alloc_t* allocator, s32 maxNumBigfiles)
+        {
+            mImp = g_allocate<bigfiles_imp_t>(allocator);
+            mImp->setup(allocator, maxNumBigfiles);
+        }
+
+        void bigfiles_t::teardown()
+        {
+            alloc_t* allocator = mImp->mAllocator;
+            mImp->teardown();
+            g_deallocate(allocator, mImp);
+            mImp = nullptr;
+        }
+
+        bool                bigfiles_t::exists(fileid_t id) const { return mImp->exists(id); }
+        bool                bigfiles_t::isEqual(fileid_t firstId, fileid_t secondId) const {}
+        file_entry_t const* bigfiles_t::file(fileid_t id) const {}
+        string_t            bigfiles_t::filename(fileid_t id) const {}
+        bigfile_reader_t*   bigfiles_t::reader() const { return mImp; }
+
     }  // namespace charon
 }  // namespace ncore

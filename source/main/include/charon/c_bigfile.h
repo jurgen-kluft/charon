@@ -19,8 +19,8 @@ namespace ncore
         struct fdb_t;
         struct hdb_t;
 
-        struct bigfile_t;
-        class bigfiles_t;
+        class bigfile_t;
+        class bigfiles_imp_t;
 
         struct file_entry_t
         {
@@ -37,12 +37,15 @@ namespace ncore
             inline bool isCompressed() const { return (mFileSize & 0x1) != 0 ? true : false; }
 
         private:
-            u32 const mFileOffset;          // FileOffset = mFileOffset * 64
-            u32 const mFileSize;            //
+            u32 const mFileOffset;  // FileOffset = mFileOffset * 64
+            u32 const mFileSize;    //
         };
 
-        struct bigfile_reader_t
+        static const file_entry_t s_invalidFileEntry;
+
+        class bigfile_reader_t
         {
+        public:
             virtual ~bigfile_reader_t() {}
             virtual s64   fileRead(fileid_t id, void* destination) const                       = 0;  // Read whole file in destination
             virtual s64   fileRead(fileid_t id, s32 size, void* destination) const             = 0;  // Read part of file header in destination
@@ -105,10 +108,10 @@ namespace ncore
             return g_LoadObject(data_file.m_fileid, data_file.m_ptr, bigfile, allocator);
         }
 
-        class bigfile_manager_t
+        class bigfiles_t
         {
         public:
-            void                init(alloc_t* allocator, s32 maxNumBigfiles);           // Initialize the bigfile manager
+            void                init(alloc_t* allocator, s32 maxNumBigfiles);        // Initialize the bigfile manager
             void                teardown();                                          // Shutdown the big
             bool                exists(fileid_t id) const;                           // Return True if file-id exists
             bool                isEqual(fileid_t firstId, fileid_t secondId) const;  // Return True if both fileIds reference the same physical file
@@ -117,8 +120,7 @@ namespace ncore
             bigfile_reader_t*   reader() const;                                      // Get the reader for the bigfile
 
         private:
-            alloc_t*          mAllocator;
-            bigfiles_t* mReader;
+            bigfiles_imp_t* mImp;
         };
 
     }  // namespace charon

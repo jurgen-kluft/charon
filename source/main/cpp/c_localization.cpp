@@ -16,7 +16,7 @@ namespace ncore
     {
     }
 
-    void localization_t::init(charon::languages_t* languages, charon::bigfile_manager_t* bfm)
+    void localization_t::init(charon::languages_t* languages, charon::bigfiles_t* bfm)
     {
         mLanguages = languages;
 
@@ -26,7 +26,7 @@ namespace ncore
         }
     }
 
-    void localization_t::loadDefaultLanguage(charon::bigfile_manager_t* bfm)
+    void localization_t::loadDefaultLanguage(charon::bigfiles_t* bfm)
     {
         mCurrentLanguage = mLanguages->getDefaultLanguage();
         loadLanguage(mLanguageStrTables[mCurrentLanguage], mCurrentLanguage, bfm);
@@ -34,7 +34,7 @@ namespace ncore
 
     charon::enums::ELanguage localization_t::getCurrentLanguage() const { return mCurrentLanguage; }
 
-    void localization_t::loadLanguage(charon::strtable_t*& language, charon::enums::ELanguage language_id, charon::bigfile_manager_t* bf)
+    void localization_t::loadLanguage(charon::strtable_t*& language, charon::enums::ELanguage language_id, charon::bigfiles_t* bf)
     {
         charon::datafile_t<charon::strtable_t> lan = mLanguages->getLanguageArray()[language_id];
         charon::bigfile_reader_t* reader = bf->reader();
