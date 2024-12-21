@@ -20,6 +20,7 @@ namespace ncore
         struct hdb_t;
 
         struct bigfile_t;
+        class bigfiles_t;
 
         struct file_entry_t
         {
@@ -49,6 +50,28 @@ namespace ncore
             virtual void* fileRead(fileid_t id, alloc_t* allocator) const                      = 0;  // Read whole file in memory allocated using allocator
         };
 
+        u8* g_PatchPointers(u8* data)
+        {
+            s32* head = (s32*)data;
+            if (head[0] > 0)
+            {
+                s32* pointer = (s32*)((uptr_t)data + head[0]);
+                while (true)
+                {
+                    s32 const nextOffset = pointer[0];
+                    s32 const dataOffset = pointer[1];
+
+                    void** pointerToPatch = (void**)pointer;
+                    *pointerToPatch       = (void*)((uptr_t)pointer + dataOffset);
+
+                    if (nextOffset == 0)
+                        break;
+                    pointer = (s32*)((uptr_t)pointer + nextOffset);
+                }
+            }
+            return data + 16;
+        }
+
         template <typename T>
         bool g_LoadObject(fileid_t id, T*& object, bigfile_reader_t const* bigfile, alloc_t* allocator)
         {
@@ -62,7 +85,7 @@ namespace ncore
                 return false;
             }
 
-            object = (T*)mem;
+            object = (T*)g_PatchPointers((u8*)mem);
             return true;
         }
 
@@ -76,9 +99,16 @@ namespace ncore
             }
         }
 
-        struct bigfile_manager_t
+        template <typename T>
+        bool g_LoadDataFile(datafile_t<T>& data_file, bigfile_reader_t const* bigfile, alloc_t* allocator)
         {
-            void                init(alloc_t* allocator, const char* dirpath);       // Initialize the bigfile manager
+            return g_LoadObject(data_file.m_fileid, data_file.m_ptr, bigfile, allocator);
+        }
+
+        class bigfile_manager_t
+        {
+        public:
+            void                init(alloc_t* allocator, s32 maxNumBigfiles);           // Initialize the bigfile manager
             void                teardown();                                          // Shutdown the big
             bool                exists(fileid_t id) const;                           // Return True if file-id exists
             bool                isEqual(fileid_t firstId, fileid_t secondId) const;  // Return True if both fileIds reference the same physical file
@@ -88,9 +118,7 @@ namespace ncore
 
         private:
             alloc_t*          mAllocator;
-            s32               mNumBigfiles;
-            bigfile_t**       mBigfiles;
-            bigfile_reader_t* mReader;
+            bigfiles_t* mReader;
         };
 
     }  // namespace charon

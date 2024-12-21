@@ -101,6 +101,12 @@ namespace ncore
             inline u32 size() const { return m_count; }
             inline u32 bytes() const { return m_bytes; }
 
+            inline T& operator[](s32 index)
+            {
+                ASSERT(index < m_count);
+                return m_array[index];
+            }
+
             inline const T& operator[](s32 index) const
             {
                 ASSERT(index < m_count);
@@ -108,9 +114,9 @@ namespace ncore
             }
 
         private:
-            T const*  m_array;
-            const u32 m_bytes;
-            const u32 m_count;
+            T*  m_array;
+            u32 m_bytes;
+            u32 m_count;
         };
 
         struct fileid_t
@@ -335,7 +341,7 @@ namespace ncore
 
         struct tracks_t
         {
-            inline array_t<datafile_t<track_t>> const& gettracks() const { return m_tracks; }
+            inline array_t<datafile_t<track_t>>& gettracks() { return m_tracks; }
 
         private:
             array_t<datafile_t<track_t>> m_tracks;
@@ -357,7 +363,7 @@ namespace ncore
             datafile_t<menu_t>         m_Menu;
             datafile_t<localization_t> m_Localization;
             datafile_t<cars_t>         m_Cars;
-            tracks_t const*            m_Tracks;
+            tracks_t *            m_Tracks;
         };
 
     }  // namespace charon
