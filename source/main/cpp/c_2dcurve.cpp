@@ -80,7 +80,7 @@ namespace ncore
         f32 fMaxY = type_t<f32>::min();
 
         for (s32 iVal = 0; iVal < mCurveInfo->iSize; iVal++)
-            fMaxY = math::max(fMaxY, mValues[iVal]);
+            fMaxY = math::g_max(fMaxY, mValues[iVal]);
 
         return fMaxY;
     }
@@ -116,7 +116,7 @@ namespace ncore
         f32 fMinY = type_t<f32>::max();
 
         for (s32 iVal = 0; iVal < mCurveInfo->iSize; iVal++)
-            fMinY = math::min(fMinY, mValues[iVal]);
+            fMinY = math::g_min(fMinY, mValues[iVal]);
 
         return fMinY;
     }

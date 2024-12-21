@@ -5,6 +5,7 @@
 #    pragma once
 #endif
 
+#include "ccore/c_allocator.h"
 #include "ccore/c_debug.h"
 
 namespace ncore
@@ -12,14 +13,70 @@ namespace ncore
     namespace charon
     {
         // Forward declares
-        class member_t;
-        class object_t;
-        class strtable_t;
+        struct staticmesh_t;
+        struct audio_t;
+        struct texture_t;
+        struct font_t;
+        struct curve_t;
+
+        namespace enums
+        {
+            enum ELanguage
+            {
+                LanguageDefault    = 0,
+                LanguageChinese    = 1,
+                LanguageItalian    = 2,
+                LanguageGerman     = 3,
+                LanguageDutch      = 4,
+                LanguageEnglishUs  = 5,
+                LanguageSpanish    = 6,
+                LanguageFrenchUs   = 7,
+                LanguagePortuguese = 8,
+                LanguageBrazilian  = 9,
+                LanguageJapanese   = 10,
+                LanguageKorean     = 11,
+                LanguageRussian    = 12,
+                LanguageGreek      = 13,
+                LanguageChineseT   = 14,
+                LanguageChineseS   = 15,
+                LanguageFinnish    = 16,
+                LanguageSwedish    = 17,
+                LanguageDanish     = 18,
+                LanguageNorwegian  = 19,
+                LanguagePolish     = 20,
+                LanguageCount      = 21,
+                LanguageInvalid    = -1,
+            };
+        }
+
+        namespace enums
+        {
+            enum EnemyType
+            {
+                Soldier = 0,
+                Archer  = 1,
+                Knight  = 2,
+            };
+        }
+
+        // Forward declares
+        struct gameroot_t;
+        struct ai_t;
+        struct fonts_t;
+        struct menu_t;
+        struct localization_t;
+        struct cars_t;
+        struct tracks_t;
+        struct languages_t;
+        struct track_t;
+        struct enemy_t;
+        struct car_t;
+        struct carconfiguration_t;
+        struct modeldata_t;
 
         template <class T>
-        class array_t
+        struct array_t
         {
-        public:
             inline array_t()
                 : m_array(nullptr)
                 , m_bytes(0)
@@ -56,40 +113,67 @@ namespace ncore
             const u32 m_count;
         };
 
-        // A standard byte buffer
-        struct buffer_t : array_t<byte>
+        struct fileid_t
         {
-            inline buffer_t(u32 byteLength, const byte* data)
-                : array_t<byte>(byteLength, byteLength, data)
+            explicit fileid_t(u32 bigfileIndex, u32 fileIndex)
+                : bigfileIndex(bigfileIndex)
+                , fileIndex(fileIndex)
             {
             }
+
+            inline u32 getBigfileIndex() const { return bigfileIndex; }
+            inline u32 getFileIndex() const { return fileIndex; }
+
+        private:
+            u32 bigfileIndex;
+            u32 fileIndex;
         };
 
-        // A standard string buffer
-        struct string_t : array_t<char>
+        const fileid_t INVALID_FILEID((u32)-1, (u32)-1);
+
+        struct locstr_t
+        {
+            explicit locstr_t(u64 id)
+                : id(id)
+            {
+            }
+            inline u64 getId() const { return id; }
+
+        private:
+            u64 id;
+        };
+
+        const locstr_t INVALID_LOCSTR((u64)-1);
+
+        // A standard string (ASCII, UTF-8)
+        struct string_t
         {
             inline string_t()
-                : array_t<char>(0, 0, "")
+                : m_bytes(0)
+                , m_count(0)
+                , m_array("")
             {
             }
 
             inline string_t(u32 byteLength, u32 charLength, const char* data)
-                : array_t<char>(charLength, byteLength, data)
+                : m_bytes(byteLength)
+                , m_count(charLength)
+                , m_array(data)
             {
             }
+
+            inline u32         size() const { return m_count; }
+            inline u32         bytes() const { return m_bytes; }
+            inline const char* c_str() const { return m_array; }
+
+        private:
+            const u32   m_bytes;
+            const u32   m_count;
+            char const* m_array;
         };
 
-        template <typename T>
-        struct data_t
+        struct strtable_t
         {
-            T*        m_ptr;
-            const s32 m_offset;
-            const s32 m_size;
-        };
-
-        class strtable_t
-        {
-        public:
             inline strtable_t(u32 numStrings, u32 const* byteLengths, u32 const* charLengths, u32 const* offsets, const char* strings)
                 : mMagic(0x36DF5DE5)
                 , mNumStrings(numStrings)
@@ -102,6 +186,8 @@ namespace ncore
             inline s32      size() const { return mNumStrings; }
             inline string_t str(u32 index) const { return string_t(mByteLengths[index], mCharLengths[index], mStrings + mOffsets[index]); }
 
+            DCORE_CLASS_PLACEMENT_NEW_DELETE
+
         protected:
             u32         mMagic;  // 'STRT'
             u32         mNumStrings;
@@ -112,138 +198,168 @@ namespace ncore
             const char* mStrings;
         };
 
-        // e.g. enum_t<EConfig, u16>
-        template <class T, class E>
-        class enum_t
+        template <typename T>
+        struct datafile_t
         {
-        public:
-            void get(T& e) const { e = (T)mEnum; }
-            T    get() const { return (T)mEnum; }
-
-        protected:
-            inline enum_t(E e)
-                : mEnum(e)
-            {
-            }
-            E const mEnum;
+            T*             m_ptr;
+            const fileid_t m_fileid;
         };
 
-        class membername_t
+        struct modeldata_t
         {
-        public:
-            explicit membername_t(const char* name)
-                : m_name(name)
-            {
-            }
-
-            const char* getName() const { return m_name; }
+            inline datafile_t<staticmesh_t> const&  getStaticMesh() const { return m_StaticMesh; }
+            inline array_t<datafile_t<void>> const& getTextures() const { return m_Textures; }
 
         private:
-            const char* m_name;
+            datafile_t<staticmesh_t>  m_StaticMesh;
+            array_t<datafile_t<void>> m_Textures;
         };
 
-        typedef u32 color_t;
-
-        const color_t sBlackColor = 0x00000000;
-        const color_t sWhiteColor = 0xFFFFFFFF;
-
-        typedef s64 fileid_t;
-        typedef s32 locstr_t;
-
-        const fileid_t INVALID_FILEID = -1;
-        const locstr_t INVALID_LOCSTR = -1;
-
-        // Examples:
-        //		const object_t* track   = root->get_object(membername_t("main"))->get_object(membername_t("tracks"))->get_object(membername_t("track1"));
-        //		const object_t* texture = track->get_object(membername_t("textures"))->get_object(membername_t("texture1"));
-        //      const fileid_t fileId   = texture->get_fileid(membername_t("fileid"));
-        class object_t
+        struct carconfiguration_t
         {
-        public:
-            ///@name For checking if a member is present
-            bool hasMember(membername_t _tname) const;
-            s32  getNumMembers() const { return m_member_count; }
-
-            void print(const strtable_t& strTable, const strtable_t& typeTable) const;
-
-            bool is_s8(membername_t _tname) const;
-            bool is_u8(membername_t _tname) const;
-            bool is_s16(membername_t _tname) const;
-            bool is_u16(membername_t _tname) const;
-            bool is_s32(membername_t _tname) const;
-            bool is_u32(membername_t _tname) const;
-            bool is_f32(membername_t _tname) const;
-            bool is_locstr(membername_t _tname) const;
-            bool is_fileid(membername_t _tname) const;
-            bool is_color(membername_t _tname) const;
-            bool is_object(membername_t _tname) const;
-
-            bool            get_bool(membername_t _tname) const;
-            s8              get_s8(membername_t _tname) const;
-            u8              get_u8(membername_t _tname) const;
-            s16             get_s16(membername_t _tname) const;
-            u16             get_u16(membername_t _tname) const;
-            s32             get_s32(membername_t _tname) const;
-            u32             get_u32(membername_t _tname) const;
-            f32             get_f32(membername_t _tname) const;
-            const char*     get_string(membername_t _tname) const;
-            locstr_t        get_locstr(membername_t _tname) const;
-            fileid_t        get_fileid(membername_t _tname) const;
-            const object_t* get_object(membername_t _tname) const;
-            color_t         get_color(membername_t _tname) const;
-
-            bool is_s8_array(membername_t _tname) const;
-            bool is_u8_array(membername_t _tname) const;
-            bool is_s16_array(membername_t _tname) const;
-            bool is_u16_array(membername_t _tname) const;
-            bool is_s32_array(membername_t _tname) const;
-            bool is_u32_array(membername_t _tname) const;
-            bool is_fx16_array(membername_t _tname) const;
-            bool is_fx32_array(membername_t _tname) const;
-            bool is_f32_array(membername_t _tname) const;
-            bool is_locstr_array(membername_t _tname) const;
-            bool is_fileid_array(membername_t _tname) const;
-            bool is_color_array(membername_t _tname) const;
-            bool is_object_array(membername_t _tname) const;
-
-            array_t<bool>            get_bool_array(membername_t _tname) const;
-            array_t<s8>              get_s8_array(membername_t _tname) const;
-            array_t<u8>              get_u8_array(membername_t _tname) const;
-            array_t<s16>             get_s16_array(membername_t _tname) const;
-            array_t<u16>             get_u16_array(membername_t _tname) const;
-            array_t<s32>             get_s32_array(membername_t _tname) const;
-            array_t<u32>             get_u32_array(membername_t _tname) const;
-            array_t<f32>             get_f32_array(membername_t _tname) const;
-            array_t<const char*>     get_string_array(membername_t _tname) const;
-            array_t<locstr_t>        get_locstr_array(membername_t _tname) const;
-            array_t<fileid_t>        get_fileid_array(membername_t _tname) const;
-            array_t<const object_t*> get_object_array(membername_t _tname) const;
-            array_t<color_t>         get_color_array(membername_t _tname) const;
-
-            template <class T>
-            const T* get_compound(membername_t _tname) const;
-            template <class T>
-            array_t<const T*> get_compoundarray(membername_t _tname) const;
+            inline string_t const& getName() const { return m_Name; }
+            inline f32             getWeight() const { return m_Weight; }
+            inline f32             getMaxSpeed() const { return m_MaxSpeed; }
+            inline f32             getAcceleration() const { return m_Acceleration; }
+            inline f32             getBraking() const { return m_Braking; }
+            inline f32             getCornering() const { return m_Cornering; }
+            inline f32             getStability() const { return m_Stability; }
+            inline f32             getTraction() const { return m_Traction; }
 
         private:
-            s32 m_member_count;
-
-            const member_t* get_member(membername_t _tname) const;
-            const void*     get_compound(membername_t _tname) const;
+            string_t m_Name;
+            f32      m_Weight;
+            f32      m_MaxSpeed;
+            f32      m_Acceleration;
+            f32      m_Braking;
+            f32      m_Cornering;
+            f32      m_Stability;
+            f32      m_Traction;
         };
 
-        template <class T>
-        const T* object_t::get_compound(membername_t _tname) const
+        struct track_t
         {
-            return (const T*)get_compound(_tname);
-        }
+            inline datafile_t<texture_t> const& getRoad() const { return m_Road; }
+            inline modeldata_t const*           getModel() const { return m_Model; }
 
-        template <class T>
-        array_t<const T*> object_t::get_compoundarray(membername_t _tname) const
+        private:
+            datafile_t<texture_t> m_Road;
+            modeldata_t const*    m_Model;
+        };
+
+        struct car_t
         {
-            array_t<const object_t*> objArray = get_object_array(_tname);
-            return array_t<const T*>(objArray.size(), (const T*)&objArray[0]);
-        }
+            inline carconfiguration_t const* getConfiguration() const { return m_Configuration; }
+            inline modeldata_t const*        getModelPath() const { return m_ModelPath; }
+
+        private:
+            carconfiguration_t const* m_Configuration;
+            modeldata_t const*        m_ModelPath;
+        };
+
+        struct enemy_t
+        {
+            inline f32              getSpeed() const { return m_Speed; }
+            inline f32              getAggresiveness() const { return m_Aggresiveness; }
+            inline s16              getHealth() const { return m_Health; }
+            inline bool             getIsAggressive() const { return (m_Booleans0 & (1 << 0)) != 0; }
+            inline bool             getWillFollowPlayer() const { return (m_Booleans0 & (1 << 1)) != 0; }
+            inline bool             getWillCallReinforcements() const { return (m_Booleans0 & (1 << 2)) != 0; }
+            inline enums::EnemyType getEnemyType() const { return (enums::EnemyType)m_EnemyType; }
+
+        private:
+            f32 m_Speed;
+            f32 m_Aggresiveness;
+            s16 m_Health;
+            u8  m_Booleans0;
+            u8  m_EnemyType;
+        };
+
+        struct languages_t
+        {
+            inline array_t<datafile_t<strtable_t>> const& getLanguageArray() const { return m_LanguageArray; }
+            inline enums::ELanguage                       getDefaultLanguage() const { return (enums::ELanguage)m_DefaultLanguage; }
+
+        private:
+            array_t<datafile_t<strtable_t>> m_LanguageArray;
+            s16                             m_DefaultLanguage;
+        };
+
+        struct cars_t
+        {
+            inline array_t<car_t const*> const& getcars() const { return m_cars; }
+
+        private:
+            array_t<car_t const*> m_cars;
+        };
+
+        struct localization_t
+        {
+            inline languages_t const* getLanguages() const { return m_Languages; }
+
+        private:
+            languages_t const* m_Languages;
+        };
+
+        struct menu_t
+        {
+            inline string_t const& getdescr() const { return m_descr; }
+
+        private:
+            string_t m_descr;
+        };
+
+        struct fonts_t
+        {
+            inline string_t const&           getDescription() const { return m_Description; }
+            inline datafile_t<font_t> const& getFont() const { return m_Font; }
+
+        private:
+            string_t           m_Description;
+            datafile_t<font_t> m_Font;
+        };
+
+        struct ai_t
+        {
+            inline string_t const&                getDescription() const { return m_Description; }
+            inline datafile_t<curve_t> const&     getReactionCurve() const { return m_ReactionCurve; }
+            inline array_t<enemy_t const*> const& getBlueprintsAsArray() const { return m_BlueprintsAsArray; }
+            inline array_t<enemy_t const*> const& getBlueprintsAsList() const { return m_BlueprintsAsList; }
+
+        private:
+            string_t                m_Description;
+            datafile_t<curve_t>     m_ReactionCurve;
+            array_t<enemy_t const*> m_BlueprintsAsArray;
+            array_t<enemy_t const*> m_BlueprintsAsList;
+        };
+
+        struct tracks_t
+        {
+            inline array_t<datafile_t<track_t>> const& gettracks() const { return m_tracks; }
+
+        private:
+            array_t<datafile_t<track_t>> m_tracks;
+        };
+
+        struct gameroot_t
+        {
+            inline datafile_t<audio_t> const&        getBootSound() const { return m_BootSound; }
+            inline datafile_t<ai_t> const&           getAI() const { return m_AI; }
+            inline datafile_t<fonts_t> const&        getFonts() const { return m_Fonts; }
+            inline datafile_t<menu_t> const&         getMenu() const { return m_Menu; }
+            inline datafile_t<localization_t> const& getLocalization() const { return m_Localization; }
+            inline datafile_t<cars_t> const&         getCars() const { return m_Cars; }
+            inline tracks_t const*                   getTracks() const { return m_Tracks; }
+
+            datafile_t<audio_t>        m_BootSound;
+            datafile_t<ai_t>           m_AI;
+            datafile_t<fonts_t>        m_Fonts;
+            datafile_t<menu_t>         m_Menu;
+            datafile_t<localization_t> m_Localization;
+            datafile_t<cars_t>         m_Cars;
+            tracks_t const*            m_Tracks;
+        };
+
     }  // namespace charon
 }  // namespace ncore
 

@@ -17,20 +17,20 @@ namespace ncore
             s32  open(alloc_t* allocator, const char* bigfileFilename, const char* bigTocFilename, const char* bigDatabaseFilename);
             void close(alloc_t* allocator);
 
-            bool                exists(fileid_t id) const;                                            // Return True if file exists in Archive
-            bool                isEqual(fileid_t firstId, fileid_t secondId) const;                   // Return True if both fileIds reference the same physical file
-            file_entry_t const* file(fileid_t id) const;                                              // Return FileEntry associated with file id
-            string_t            filename(fileid_t id) const;                                          // Return Filename associated with file id
-            s64                 fileRead(fileid_t id, void* destination) const;                       // Read whole file in destination
-            s64                 fileRead(fileid_t id, s32 size, void* destination) const;             // Read part of file header in destination
-            s64                 fileRead(fileid_t id, s32 offset, s32 size, void* destination) const; // Read part of file in destination
+            bool                exists(fileid_t id) const;                                             // Return True if file exists in Archive
+            bool                isEqual(fileid_t firstId, fileid_t secondId) const;                    // Return True if both fileIds reference the same physical file
+            file_entry_t const* file(fileid_t id) const;                                               // Return FileEntry associated with file id
+            string_t            filename(fileid_t id) const;                                           // Return Filename associated with file id
+            s64                 fileRead(fileid_t id, void* destination) const;                        // Read whole file in destination
+            s64                 fileRead(fileid_t id, s32 size, void* destination) const;              // Read part of file header in destination
+            s64                 fileRead(fileid_t id, s32 offset, s32 size, void* destination) const;  // Read part of file in destination
 
-            void*  mBasePtr; // The TOC of the bigfile in memory
-            s32    mIndex;   // Index of the bigfile in the bigfile manager
-            gda_t* mGDA;     // The .gda file
-            toc_t* mTOC;     // The TOC of the bigfile
-            fdb_t* mFDB;     // In DEBUG mode if you want to know the filename of a fileid_t
-            hdb_t* mHDB;     // In DEBUG mode if you want to know the hash of a fileid_t
+            void*  mBasePtr;  // The TOC of the bigfile in memory
+            s32    mIndex;    // Index of the bigfile in the bigfile manager
+            gda_t* mGDA;      // The .gda file
+            toc_t* mTOC;      // The TOC of the bigfile
+            fdb_t* mFDB;      // In DEBUG mode if you want to know the filename of a fileid_t
+            hdb_t* mHDB;      // In DEBUG mode if you want to know the hash of a fileid_t
         };
 
         // Constraints:
@@ -64,15 +64,15 @@ namespace ncore
             u32                 getGDAOffset() const { return mGDAOffset; }
 
         private:
-            const u32 mTocOffset; // Where this TOC starts (relative to itself)
-            const u32 mTocCount;  // How many entries this TOC has
-            const u32 mGDAOffset; // The base offset in the .gda file
+            u32 mTocOffset;  // Where this TOC starts (relative to itself)
+            u32 mTocCount;   // How many entries this TOC has
+            u32 mGDAOffset;  // The base offset in the .gda file
         };
 
         file_entry_t const* mft_t::getFileInfo(fileid_t id) const
         {
             const file_entry_t* table = (const file_entry_t*)((const byte*)this + mTocOffset);
-            u32 const           index = id & 0xffffffff;
+            u32 const           index = id.getFileIndex();
             return (index < mTocCount) ? &table[index] : &s_invalidFileEntry;
         }
 
@@ -82,13 +82,13 @@ namespace ncore
 
         private:
             const mft_t* sectionArray() const { return (const mft_t*)((const byte*)this + sizeof(u32)); }
-            const u32    mNumSections;
-            const s32    mBigfileIndex;
+            u32          mNumSections;
+            s32          mBigfileIndex;
         };
 
         file_entry_t const* toc_t::getFileInfo(fileid_t id) const
         {
-            const u32 sectionIndex = id >> 32;
+            const u32 sectionIndex = id.getBigfileIndex();
             return (sectionIndex < mNumSections) ? sectionArray()[sectionIndex].getFileInfo(id) : &s_invalidFileEntry;
         }
 
@@ -115,9 +115,9 @@ namespace ncore
         string_t fdb_t::getFilename(fileid_t id) const
         {
             u32 const* sectionOffsetArray = (u32*)((byte*)this + sizeof(u32));
-            u32 const  sectionOffset      = sectionOffsetArray[id >> 32];
+            u32 const  sectionOffset      = sectionOffsetArray[id.getBigfileIndex()];
             u32 const* section            = (u32*)((byte*)this + sectionOffset);
-            u32 const  filenameOffset     = section[id & 0xffffffff];
+            u32 const  filenameOffset     = section[id.getFileIndex()];
             u32 const* filename           = (u32*)((byte*)section + filenameOffset);
             u32 const  numBytes           = filename[0];
             u32 const  numRunes           = filename[1];
@@ -203,7 +203,7 @@ namespace ncore
 
         file_entry_t const* bigfile_t::file(fileid_t id) const { return mTOC->getFileInfo(id); }
 
-        charon::string_t bigfile_t::filename(fileid_t id) const { return mFDB != nullptr ? mFDB->getFilename((u32)(id & 0xffffffff)) : charon::string_t(); }
+        charon::string_t bigfile_t::filename(fileid_t id) const { return mFDB != nullptr ? mFDB->getFilename(id) : charon::string_t(); }
 
         bool bigfile_t::isEqual(fileid_t firstId, fileid_t secondId) const
         {
@@ -233,5 +233,5 @@ namespace ncore
             nfile::file_seek(mGDA->fd, seekpos, nfile::seek_mode_t::SEEK_MODE_BEG);
             return nfile::file_read(mGDA->fd, (u8*)destination, size);
         }
-    } // namespace charon
-} // namespace ncore
+    }  // namespace charon
+}  // namespace ncore

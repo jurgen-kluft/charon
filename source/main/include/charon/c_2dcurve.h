@@ -9,19 +9,6 @@
 
 namespace ncore
 {
-    enum ECurveState
-    {
-        ECurveStateSTANDALONE,
-        ECurveStateSHAREDVALUES,
-        ECurveStateSHARED
-    };
-
-    struct curve_info_t
-    {
-        ncore::f32 fMinX, fMaxX;
-        ncore::s32 iSize;
-    };
-
     class curve2d_t
     {
     public:
@@ -52,6 +39,19 @@ namespace ncore
         }
 
         ncore::f32 fGetLastNegativeXFromEnd() const;
+
+        enum ECurveState
+        {
+            ECurveStateSTANDALONE,
+            ECurveStateSHAREDVALUES,
+            ECurveStateSHARED
+        };
+
+        struct curve_info_t
+        {
+            ncore::f32 fMinX, fMaxX;
+            ncore::s32 iSize;
+        };
 
     protected:
         curve_info_t* mCurveInfo;
