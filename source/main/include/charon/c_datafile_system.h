@@ -5,7 +5,6 @@
 #    pragma once
 #endif
 
-#include "cfile/c_file.h"
 #include "charon/c_object.h"
 
 namespace ncore
@@ -19,8 +18,8 @@ namespace ncore
         struct fdb_t;
         struct hdb_t;
 
-        class bigfile_t;
-        class bigfiles_imp_t;
+        class datafile_archive_t;
+        class datafile_system_imp_t;
 
         struct file_entry_t
         {
@@ -43,10 +42,10 @@ namespace ncore
 
         static const file_entry_t s_invalidFileEntry;
 
-        class bigfile_reader_t
+        class datafile_reader_t
         {
         public:
-            virtual ~bigfile_reader_t() {}
+            virtual ~datafile_reader_t() {}
             virtual s64   fileRead(fileid_t id, void* destination) const                       = 0;  // Read whole file in destination
             virtual s64   fileRead(fileid_t id, s32 size, void* destination) const             = 0;  // Read part of file header in destination
             virtual s64   fileRead(fileid_t id, s32 offset, s32 size, void* destination) const = 0;  // Read part of file in destination
@@ -76,7 +75,7 @@ namespace ncore
         }
 
         template <typename T>
-        bool g_LoadObject(fileid_t id, T*& object, bigfile_reader_t const* bigfile, alloc_t* allocator)
+        bool g_LoadObject(fileid_t id, T*& object, datafile_reader_t const* bigfile, alloc_t* allocator)
         {
             if (object != nullptr)
                 return true;
@@ -103,12 +102,12 @@ namespace ncore
         }
 
         template <typename T>
-        bool g_LoadDataFile(datafile_t<T>& data_file, bigfile_reader_t const* bigfile, alloc_t* allocator)
+        bool g_LoadDataFile(datafile_t<T>& data_file, datafile_reader_t const* bigfile, alloc_t* allocator)
         {
             return g_LoadObject(data_file.m_fileid, data_file.m_ptr, bigfile, allocator);
         }
 
-        class bigfiles_t
+        class datafile_system_t
         {
         public:
             void                init(alloc_t* allocator, s32 maxNumBigfiles);        // Initialize the bigfile manager
@@ -117,10 +116,10 @@ namespace ncore
             bool                isEqual(fileid_t firstId, fileid_t secondId) const;  // Return True if both fileIds reference the same physical file
             file_entry_t const* file(fileid_t id) const;                             // Return FileEntry associated with file id
             string_t            filename(fileid_t id) const;                         // Return Filename associated with file id
-            bigfile_reader_t*   reader() const;                                      // Get the reader for the bigfile
+            datafile_reader_t*  reader() const;                                      // Get the reader for the bigfile
 
         private:
-            bigfiles_imp_t* mImp;
+            datafile_system_imp_t* mImp;
         };
 
     }  // namespace charon

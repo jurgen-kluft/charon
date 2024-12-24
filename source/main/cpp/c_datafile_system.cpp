@@ -3,7 +3,7 @@
 #include "ccore/c_math.h"
 #include "cfile/c_file.h"
 
-#include "charon/c_bigfile.h"
+#include "charon/c_datafile_system.h"
 #include "charon/c_object.h"
 
 namespace ncore
@@ -17,12 +17,12 @@ namespace ncore
         //     HasChildren = FileChildrenOffset & 0x2
 
         // ------------------------------------------------------------------------------------------------
-        // ------- Bigfile --------------------------------------------------------------------------------
+        // ------- Datafile Archive -----------------------------------------------------------------------
         // ------------------------------------------------------------------------------------------------
-        class bigfile_t
+        class datafile_archive_t
         {
         public:
-            bigfile_t();
+            datafile_archive_t();
 
             s32  open(alloc_t* allocator, const char* bigfileFilename, const char* bigTocFilename, const char* bigDatabaseFilename);
             void close(alloc_t* allocator);
@@ -43,13 +43,13 @@ namespace ncore
         };
 
         // ------------------------------------------------------------------------------------------------
-        // ------- Bigfiles, the actual implementation ----------------------------------------------------
+        // ------- DataFiles, the actual implementation ----------------------------------------------------
         // ------------------------------------------------------------------------------------------------
 
-        class bigfiles_imp_t : public bigfile_reader_t
+        class datafile_system_imp_t : public datafile_reader_t
         {
         public:
-            void                setup(alloc_t* allocator, s32 maxNumBigfiles);
+            void                setup(alloc_t* allocator, s32 maxNumDataFileArchives);
             void                teardown();
             bool                exists(fileid_t id) const;
             bool                isEqual(fileid_t firstId, fileid_t secondId) const;
@@ -60,101 +60,101 @@ namespace ncore
             s64                 fileRead(fileid_t id, s32 offset, s32 size, void* destination) const override;
             void*               fileRead(fileid_t id, alloc_t* allocator) const override;
 
-            alloc_t*    mAllocator;
-            s32         mNumBigfiles;
-            s32         mMaxNumBigfiles;
-            bigfile_t** mBigfiles;
+            alloc_t*             mAllocator;
+            s32                  mNumArchives;
+            s32                  mMaxNumArchives;
+            datafile_archive_t** mArchives;
         };
 
-        void bigfiles_imp_t::setup(alloc_t* allocator, s32 maxNumBigfiles)
+        void datafile_system_imp_t::setup(alloc_t* allocator, s32 maxNumDataFileArchives)
         {
             mAllocator      = allocator;
-            mNumBigfiles    = 0;
-            mMaxNumBigfiles = maxNumBigfiles;
-            mBigfiles       = g_allocate_array_and_clear<bigfile_t*>(allocator, maxNumBigfiles);
+            mNumArchives    = 0;
+            mMaxNumArchives = maxNumDataFileArchives;
+            mArchives       = g_allocate_array_and_clear<datafile_archive_t*>(allocator, maxNumDataFileArchives);
         }
 
-        void bigfiles_imp_t::teardown()
+        void datafile_system_imp_t::teardown()
         {
-            for (s32 i = 0; i < mNumBigfiles; ++i)
+            for (s32 i = 0; i < mNumArchives; ++i)
             {
-                if (mBigfiles[i] != nullptr)
+                if (mArchives[i] != nullptr)
                 {
-                    mBigfiles[i]->close(mAllocator);
-                    g_deallocate(mAllocator, mBigfiles[i]);
-                    mBigfiles[i] = nullptr;
+                    mArchives[i]->close(mAllocator);
+                    g_deallocate(mAllocator, mArchives[i]);
+                    mArchives[i] = nullptr;
                 }
             }
-            g_deallocate(mAllocator, mBigfiles);
+            g_deallocate(mAllocator, mArchives);
             mAllocator = nullptr;
         }
 
-        bool bigfiles_imp_t::exists(fileid_t id) const
+        bool datafile_system_imp_t::exists(fileid_t id) const
         {
-            if (id.getBigfileIndex() < mNumBigfiles)
+            if (id.getArchiveIndex() < mNumArchives)
             {
-                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
+                datafile_archive_t* bigfile = mArchives[id.getArchiveIndex()];
                 return bigfile != nullptr && bigfile->exists(id);
             }
             return false;
         }
 
-        file_entry_t const* bigfiles_imp_t::file(fileid_t id) const
+        file_entry_t const* datafile_system_imp_t::file(fileid_t id) const
         {
-            if (id.getBigfileIndex() < mNumBigfiles)
+            if (id.getArchiveIndex() < mNumArchives)
             {
-                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
+                datafile_archive_t* bigfile = mArchives[id.getArchiveIndex()];
                 return bigfile != nullptr ? bigfile->file(id) : nullptr;
             }
             return nullptr;
         }
 
-        string_t bigfiles_imp_t::filename(fileid_t id) const
+        string_t datafile_system_imp_t::filename(fileid_t id) const
         {
-            if (id.getBigfileIndex() < mNumBigfiles)
+            if (id.getArchiveIndex() < mNumArchives)
             {
-                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
+                datafile_archive_t* bigfile = mArchives[id.getArchiveIndex()];
                 return bigfile != nullptr ? bigfile->filename(id) : string_t();
             }
             return string_t();
         }
 
-        s64 bigfiles_imp_t::fileRead(fileid_t id, void* destination) const
+        s64 datafile_system_imp_t::fileRead(fileid_t id, void* destination) const
         {
-            if (id.getBigfileIndex() < mNumBigfiles)
+            if (id.getArchiveIndex() < mNumArchives)
             {
-                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
+                datafile_archive_t* bigfile = mArchives[id.getArchiveIndex()];
                 return bigfile != nullptr ? bigfile->fileRead(id, destination) : 0;
             }
             return 0;
         }
 
-        s64 bigfiles_imp_t::fileRead(fileid_t id, s32 size, void* destination) const
+        s64 datafile_system_imp_t::fileRead(fileid_t id, s32 size, void* destination) const
         {
-            if (id.getBigfileIndex() < mNumBigfiles)
+            if (id.getArchiveIndex() < mNumArchives)
             {
-                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
+                datafile_archive_t* bigfile = mArchives[id.getArchiveIndex()];
                 return bigfile != nullptr ? bigfile->fileRead(id, size, destination) : 0;
             }
             return 0;
         }
 
-        s64 bigfiles_imp_t::fileRead(fileid_t id, s32 offset, s32 size, void* destination) const
+        s64 datafile_system_imp_t::fileRead(fileid_t id, s32 offset, s32 size, void* destination) const
         {
-            if (id.getBigfileIndex() < mNumBigfiles)
+            if (id.getArchiveIndex() < mNumArchives)
             {
-                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
+                datafile_archive_t* bigfile = mArchives[id.getArchiveIndex()];
                 return bigfile != nullptr ? bigfile->fileRead(id, offset, size, destination) : 0;
             }
             return 0;
         }
 
-        void* bigfiles_imp_t::fileRead(fileid_t id, alloc_t* allocator) const
+        void* datafile_system_imp_t::fileRead(fileid_t id, alloc_t* allocator) const
         {
-            if (id.getBigfileIndex() < mNumBigfiles)
+            if (id.getArchiveIndex() < mNumArchives)
             {
-                bigfile_t* bigfile = mBigfiles[id.getBigfileIndex()];
-                file_entry_t const* entry = bigfile != nullptr ? bigfile->file(id) : nullptr;
+                datafile_archive_t* bigfile = mArchives[id.getArchiveIndex()];
+                file_entry_t const* entry   = bigfile != nullptr ? bigfile->file(id) : nullptr;
                 if (entry != nullptr)
                 {
                     u8* data = g_allocate_array<byte>(allocator, entry->getFileSize());
@@ -211,7 +211,7 @@ namespace ncore
 
         file_entry_t const* toc_t::getFileInfo(fileid_t id) const
         {
-            const u32 sectionIndex = id.getBigfileIndex();
+            const u32 sectionIndex = id.getArchiveIndex();
             return (sectionIndex < mNumSections) ? sectionArray()[sectionIndex].getFileInfo(id) : &s_invalidFileEntry;
         }
 
@@ -237,7 +237,7 @@ namespace ncore
 
         string_t fdb_t::getFilename(fileid_t id) const
         {
-            u32 bigfileIndex = id.getBigfileIndex();
+            u32 bigfileIndex = id.getArchiveIndex();
             if (mNumSections == 1)
                 bigfileIndex = 0;
 
@@ -266,7 +266,7 @@ namespace ncore
 
         u64 hdb_t::getHash(fileid_t id) const
         {
-            u32 bigfileIndex = id.getBigfileIndex();
+            u32 bigfileIndex = id.getArchiveIndex();
             if (mNumSections == 1)
                 bigfileIndex = 0;
             u32 const* sectionOffsetArray = (u32*)((byte*)this + sizeof(u32)) + bigfileIndex * 2;
@@ -284,14 +284,14 @@ namespace ncore
         // The .bfa file containing all the files, uses the .mft file to obtain the
         // offset in the .bfa file for a file.
 
-        bigfile_t::bigfile_t()
+        datafile_archive_t::datafile_archive_t()
         {
             mTOC = nullptr;
             mFDB = nullptr;
             mGDA = nullptr;
         }
 
-        s32 bigfile_t::open(alloc_t* allocator, const char* bigfileFilename, const char* bigTocFilename, const char* bigDatabaseFilename)
+        s32 datafile_archive_t::open(alloc_t* allocator, const char* bigfileFilename, const char* bigTocFilename, const char* bigDatabaseFilename)
         {
             close(allocator);
 
@@ -332,7 +332,7 @@ namespace ncore
             return mIndex;
         }
 
-        void bigfile_t::close(alloc_t* allocator)
+        void datafile_archive_t::close(alloc_t* allocator)
         {
             if (mGDA->isValid())
             {
@@ -352,16 +352,16 @@ namespace ncore
             }
         }
 
-        bool bigfile_t::exists(fileid_t id) const
+        bool datafile_archive_t::exists(fileid_t id) const
         {
             file_entry_t const* f = mTOC->getFileInfo(id);
             return f != nullptr && f->isValid();
         }
 
-        file_entry_t const* bigfile_t::file(fileid_t id) const { return mTOC->getFileInfo(id); }
-        charon::string_t    bigfile_t::filename(fileid_t id) const { return mFDB != nullptr ? mFDB->getFilename(id) : charon::string_t(); }
+        file_entry_t const* datafile_archive_t::file(fileid_t id) const { return mTOC->getFileInfo(id); }
+        charon::string_t    datafile_archive_t::filename(fileid_t id) const { return mFDB != nullptr ? mFDB->getFilename(id) : charon::string_t(); }
 
-        s64 bigfile_t::fileRead(fileid_t id, void* destination) const
+        s64 datafile_archive_t::fileRead(fileid_t id, void* destination) const
         {
             file_entry_t const* f = mTOC->getFileInfo(id);
             if (!f->isValid())
@@ -369,8 +369,8 @@ namespace ncore
             return fileRead(id, 0, f->getFileSize(), destination);
         }
 
-        s64 bigfile_t::fileRead(fileid_t id, s32 size, void* destination) const { return fileRead(id, 0, size, destination); }
-        s64 bigfile_t::fileRead(fileid_t id, s32 offset, s32 size, void* destination) const
+        s64 datafile_archive_t::fileRead(fileid_t id, s32 size, void* destination) const { return fileRead(id, 0, size, destination); }
+        s64 datafile_archive_t::fileRead(fileid_t id, s32 offset, s32 size, void* destination) const
         {
             file_entry_t const* f = mTOC->getFileInfo(id);
             if (!f->isValid())
@@ -382,16 +382,16 @@ namespace ncore
         }
 
         // ------------------------------------------------------------------------------------------------
-        // ------- Bigfiles Implementation ----------------------------------------------------------------
+        // ------- Datafile System Implementation ---------------------------------------------------------
         // ------------------------------------------------------------------------------------------------
 
-        void bigfiles_t::init(alloc_t* allocator, s32 maxNumBigfiles)
+        void datafile_system_t::init(alloc_t* allocator, s32 maxNumDataFileArchives)
         {
-            mImp = g_allocate<bigfiles_imp_t>(allocator);
-            mImp->setup(allocator, maxNumBigfiles);
+            mImp = g_allocate<datafile_system_imp_t>(allocator);
+            mImp->setup(allocator, maxNumDataFileArchives);
         }
 
-        void bigfiles_t::teardown()
+        void datafile_system_t::teardown()
         {
             alloc_t* allocator = mImp->mAllocator;
             mImp->teardown();
@@ -399,11 +399,11 @@ namespace ncore
             mImp = nullptr;
         }
 
-        bool                bigfiles_t::exists(fileid_t id) const { return mImp->exists(id); }
-        bool                bigfiles_t::isEqual(fileid_t firstId, fileid_t secondId) const {}
-        file_entry_t const* bigfiles_t::file(fileid_t id) const {}
-        string_t            bigfiles_t::filename(fileid_t id) const {}
-        bigfile_reader_t*   bigfiles_t::reader() const { return mImp; }
+        bool                datafile_system_t::exists(fileid_t id) const { return mImp->exists(id); }
+        bool                datafile_system_t::isEqual(fileid_t firstId, fileid_t secondId) const {}
+        file_entry_t const* datafile_system_t::file(fileid_t id) const {}
+        string_t            datafile_system_t::filename(fileid_t id) const {}
+        datafile_reader_t*  datafile_system_t::reader() const { return mImp; }
 
     }  // namespace charon
 }  // namespace ncore
