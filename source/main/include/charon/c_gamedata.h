@@ -1,5 +1,5 @@
-#ifndef __CHARON_OBJECT_H__
-#define __CHARON_OBJECT_H__
+#ifndef __CHARON_GAMEDATA_H__
+#define __CHARON_GAMEDATA_H__
 #include "ccore/c_target.h"
 #ifdef USE_PRAGMA_ONCE
 #    pragma once
@@ -67,7 +67,7 @@ namespace ncore
         struct localization_t;
         struct cars_t;
         struct tracks_t;
-        struct gamedatafile_t;
+        struct archive_info_t;
         struct languages_t;
         struct track_t;
         struct enemy_t;
@@ -119,9 +119,10 @@ namespace ncore
         struct dataunit_t
         {
             T*   get() { return (T*)g_gamedata->get_dataunit_ptr(m_dataunit_index); }
-            void load(loader_t& loader) { g_gamedata->load_dataunit(loader, m_dataunit_index); }
+            void load(archive_loader_t& loader) { g_gamedata->load_dataunit(loader, m_dataunit_index); }
             u32  m_dataunit_index;
         };
+
         struct dataunit_header_t
         {
             u32 m_patch_offset;
@@ -144,17 +145,34 @@ namespace ncore
             u32 archiveIndex;
             u32 fileIndex;
         };
+
         const fileid_t INVALID_FILEID((u32)-1, (u32)-1);
 
-        class gamedata_t
+        class filesystem_t
         {
         public:
-            virtual void* get_datafile_ptr(fileid_t fileid)                   = 0;
-            virtual void* get_dataunit_ptr(u32 dataunit_index)                = 0;
-            virtual void  load_datafile(loader_t& loader, fileid_t fileid)    = 0;
-            virtual void  load_dataunit(loader_t& loader, u32 dataunit_index) = 0;
+            template <typename T>
+            void* get_datafile_ptr(fileid_t fileid)
+            {
+                return (T*)v_get_datafile_ptr(fileid);
+            }
+            template <typename T>
+            void* get_dataunit_ptr(u32 dataunit_index)
+            {
+                return (T*)v_get_dataunit_ptr(dataunit_index);
+            }
+
+            void load_datafile(archive_loader_t& loader, fileid_t fileid) { v_load_datafile(loader, fileid); }
+            void load_dataunit(archive_loader_t& loader, u32 dataunit_index) { v_load_dataunit(loader, dataunit_index); }
+
+        protected:
+            virtual void* v_get_datafile_ptr(fileid_t fileid)                   = 0;
+            virtual void* v_get_dataunit_ptr(u32 dataunit_index)                = 0;
+            virtual void  v_load_datafile(archive_loader_t& loader, fileid_t fileid)    = 0;
+            virtual void  v_load_dataunit(archive_loader_t& loader, u32 dataunit_index) = 0;
         };
-        gamedata_t* g_gamedata;
+
+        filesystem_t* g_filesystem;
 
         struct locstr_t
         {
@@ -189,8 +207,8 @@ namespace ncore
             inline const char* c_str() const { return m_array; }
 
         private:
-            const u32   m_bytes;
-            const u32   m_count;
+            u32         m_bytes;
+            u32         m_count;
             char const* m_array;
         };
 
@@ -222,7 +240,7 @@ namespace ncore
         struct datafile_t
         {
             T*       get() { return (T*)g_gamedata->get_datafile_ptr(m_fileid); }
-            void     load(loader_t& loader) { g_gamedata->load_datafile(loader, m_fileid); }
+            void     load(archive_loader_t& loader) { g_gamedata->load_datafile(loader, m_fileid); }
             fileid_t m_fileid;
         };
 
@@ -306,20 +324,6 @@ namespace ncore
             s16                             m_DefaultLanguage;
         };
 
-        struct gamedatafile_t
-        {
-            inline string_t const& getBigfileData() const { return m_BigfileData; }
-            inline string_t const& getBigfileToc() const { return m_BigfileToc; }
-            inline string_t const& getBigfileFdb() const { return m_BigfileFdb; }
-            inline string_t const& getBigfileHdb() const { return m_BigfileHdb; }
-
-        private:
-            string_t m_BigfileData;
-            string_t m_BigfileToc;
-            string_t m_BigfileFdb;
-            string_t m_BigfileHdb;
-        };
-
         struct cars_t
         {
             inline array_t<car_t*> const& getcars() const { return m_cars; }
@@ -378,7 +382,7 @@ namespace ncore
 
         struct gameroot_t
         {
-            inline array_t<gamedatafile_t*> const&   getGameData() const { return m_GameData; }
+            inline array_t<archive_info_t*> const&   getArchiveInfo() const { return m_ArchiveInfo; }
             inline datafile_t<audio_t> const&        getBootSound() const { return m_BootSound; }
             inline tracks_t const*                   getTracks() const { return m_Tracks; }
             inline dataunit_t<ai_t> const&           getAI() const { return m_AI; }
@@ -388,7 +392,7 @@ namespace ncore
             inline dataunit_t<cars_t> const&         getCars() const { return m_Cars; }
 
         private:
-            array_t<gamedatafile_t*>   m_GameData;
+            array_t<archive_info_t*>   m_ArchiveInfo;
             datafile_t<audio_t>        m_BootSound;
             tracks_t*                  m_Tracks;
             dataunit_t<ai_t>           m_AI;
