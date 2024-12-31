@@ -30,65 +30,49 @@ namespace ncore
         class archive_loader_t
         {
         public:
-            virtual ~archive_loader_t() {}
+            void load_datafile(fileid_t fileid) { v_load_datafile(fileid); }
+            void load_dataunit(u32 dataunit_index) { v_load_dataunit(dataunit_index); }
 
             template <typename T>
-            bool load(fileid_t id, T*& object, alloc_t* allocator)
+            void* get_datafile_ptr(fileid_t fileid)
             {
-                if (object != nullptr)
-                    return true;
-
-                void* mem = v_fileRead(id, allocator);
-                if (mem == nullptr)
-                {
-                    object = nullptr;
-                    return false;
-                }
-
-                object = (T*)patch((u8*)mem);
-                return true;
+                return (T*)v_get_datafile_ptr(fileid);
             }
 
             template <typename T>
-            void unload(T*& object, alloc_t* allocator)
+            void* get_dataunit_ptr(u32 dataunit_index)
             {
-                if (object != nullptr)
-                {
-                    g_deallocate(allocator, object);
-                    object = nullptr;
-                }
+                return (T*)v_get_dataunit_ptr(dataunit_index);
             }
 
-            static u8* patch(u8* data)
+            template <typename T>
+            void unload_datafile(T*& object)
             {
-                s32* head = (s32*)data;
-                if (head[0] > 0)
-                {
-                    s32* pointer = (s32*)((uptr_t)data + head[0]);
-                    while (true)
-                    {
-                        s32 const nextOffset = pointer[0];
-                        s32 const dataOffset = pointer[1];
+                v_unload_datafile(object);
+            }
 
-                        void** pointerToPatch = (void**)pointer;
-                        *pointerToPatch       = (void*)((uptr_t)pointer + dataOffset);
-
-                        if (nextOffset == 0)
-                            break;
-                        pointer = (s32*)((uptr_t)pointer + nextOffset);
-                    }
-                }
-                return data + 16;
+            template <typename T>
+            void unload_dataunit(T*& object)
+            {
+                v_unload_dataunit(object);
             }
 
         protected:
-            virtual s64   v_fileRead(fileid_t id, s32 offset, s32 size, void* destination) const = 0;  // Read part of file in destination
-            virtual void* v_fileRead(fileid_t id, alloc_t* allocator) const                      = 0;  // Read whole file in memory allocated using allocator
+            virtual void* v_get_datafile_ptr(fileid_t fileid)    = 0;
+            virtual void* v_get_dataunit_ptr(u32 dataunit_index) = 0;
+            virtual void* v_load_datafile(fileid_t fileid)       = 0;
+            virtual void* v_load_dataunit(u32 dataunit_index)    = 0;
+            virtual void  v_unload_datafile(fileid_t fileid)     = 0;
+            virtual void  v_unload_dataunit(u32 dataunit_index)  = 0;
         };
 
         class archive_t
         {
         public:
+            static archive_t* s_instance;
+            static void       s_setup(alloc_t* allocator, s32 maxNumArchives);
+            static void       s_teardown();
+
             struct file_t
             {
                 inline u64 getFileSize() const { return (u64)(mFileSize); }
@@ -116,10 +100,8 @@ namespace ncore
             file_t const*     fileitem(fileid_t id) const;                   // Return Item associated with file id
             string_t          filename(fileid_t id) const;                   // Return Filename associated with file id
             archive_loader_t* loader() const;                                // Get the loader interface
-
-            class imp_t;
-            imp_t* mImp;
         };
+
     }  // namespace charon
 }  // namespace ncore
 

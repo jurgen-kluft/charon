@@ -148,32 +148,6 @@ namespace ncore
 
         const fileid_t INVALID_FILEID((u32)-1, (u32)-1);
 
-        class filesystem_t
-        {
-        public:
-            template <typename T>
-            void* get_datafile_ptr(fileid_t fileid)
-            {
-                return (T*)v_get_datafile_ptr(fileid);
-            }
-            template <typename T>
-            void* get_dataunit_ptr(u32 dataunit_index)
-            {
-                return (T*)v_get_dataunit_ptr(dataunit_index);
-            }
-
-            void load_datafile(archive_loader_t& loader, fileid_t fileid) { v_load_datafile(loader, fileid); }
-            void load_dataunit(archive_loader_t& loader, u32 dataunit_index) { v_load_dataunit(loader, dataunit_index); }
-
-        protected:
-            virtual void* v_get_datafile_ptr(fileid_t fileid)                   = 0;
-            virtual void* v_get_dataunit_ptr(u32 dataunit_index)                = 0;
-            virtual void  v_load_datafile(archive_loader_t& loader, fileid_t fileid)    = 0;
-            virtual void  v_load_dataunit(archive_loader_t& loader, u32 dataunit_index) = 0;
-        };
-
-        filesystem_t* g_filesystem;
-
         struct locstr_t
         {
             explicit locstr_t(u64 id)

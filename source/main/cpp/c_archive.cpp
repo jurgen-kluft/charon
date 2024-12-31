@@ -21,6 +21,50 @@ namespace ncore
         struct hdb_t;
 
         // ------------------------------------------------------------------------------------------------
+        // ------- Read a File into Memory ----------------------------------------------------------------
+        // ------------------------------------------------------------------------------------------------
+        static void* s_read_file(const char* filename, alloc_t* allocator, s64* fileSize)
+        {
+            nfile::file_handle_t fd = nfile::file_open(filename, nfile::file_mode_t::FILE_MODE_READ);
+            if (fd.isValid())
+            {
+                s64   size = nfile::file_size(fd);
+                void* data = g_allocate_array<byte>(allocator, size);
+                nfile::file_read(fd, (u8*)data, (u32)size);
+                nfile::file_close(fd);
+                if (fileSize != nullptr)
+                    *fileSize = size;
+                return data;
+            }
+            return nullptr;
+        }
+
+        // ------------------------------------------------------------------------------------------------
+        // ------- Patching Pointers in a Datafile --------------------------------------------------------
+        // ------------------------------------------------------------------------------------------------
+        static u8* s_patch(u8* data)
+        {
+            s32* head = (s32*)data;
+            if (head[0] > 0)
+            {
+                s32* pointer = (s32*)((uptr_t)data + head[0]);
+                while (true)
+                {
+                    s32 const nextOffset = pointer[0];
+                    s32 const dataOffset = pointer[1];
+
+                    void** pointerToPatch = (void**)pointer;
+                    *pointerToPatch       = (void*)((uptr_t)pointer + dataOffset);
+
+                    if (nextOffset == 0)
+                        break;
+                    pointer = (s32*)((uptr_t)pointer + nextOffset);
+                }
+            }
+            return data + 16;
+        }
+
+        // ------------------------------------------------------------------------------------------------
         // ------- A Single Datafile Archive --------------------------------------------------------------
         // ------------------------------------------------------------------------------------------------
         class archivefile_t
@@ -45,9 +89,9 @@ namespace ncore
         };
 
         // ------------------------------------------------------------------------------------------------
-        // ------- DataFiles, the actual implementation ----------------------------------------------------
+        // ------- Data Archive, implementation -----------------------------------------------------------
         // ------------------------------------------------------------------------------------------------
-        class archive_t::imp_t : public archive_loader_t
+        class archive_imp_t : public archive_loader_t
         {
         public:
             void                     setup(alloc_t* allocator, s32 maxNumDataFileArchives);
@@ -55,25 +99,43 @@ namespace ncore
             bool                     exists(fileid_t id) const;
             archive_t::file_t const* fileitem(fileid_t id) const;
             string_t                 filename(fileid_t id) const;
-            s64                      v_fileRead(fileid_t id, s32 offset, s32 size, void* destination) const override;
-            void*                    v_fileRead(fileid_t id, alloc_t* allocator) const override;
 
-            alloc_t*        mAllocator;
-            s32             mNumArchives;
-            s32             mMaxNumArchives;
-            archivefile_t** mArchives;
+            void* v_get_datafile_ptr(fileid_t fileid) override;
+            void* v_get_dataunit_ptr(u32 dataunit_index) override;
+            void* v_load_datafile(fileid_t fileid) override;
+            void* v_load_dataunit(u32 dataunit_index) override;
+            void  v_unload_datafile(fileid_t fileid) override;
+            void  v_unload_dataunit(u32 dataunit_index) override;
+
+            alloc_t*               mAllocator;
+            s32                    mNumDataUnits;
+            s32                    mNumArchives;
+            archivefile_t**        mArchives;
+            archive_t::section_t** mArchiveSections;
+            void***                mDataFilePtrs;
+            void**                 mDataUnitPtrs;
         };
 
-        void archive_t::imp_t::setup(alloc_t* allocator, s32 maxNumDataFileArchives)
+        void archive_imp_t::setup(alloc_t* allocator, s32 maxNumDataFileArchives)
         {
-            mAllocator      = allocator;
-            mNumArchives    = 0;
-            mMaxNumArchives = maxNumDataFileArchives;
-            mArchives       = g_allocate_array_and_clear<archivefile_t*>(allocator, maxNumDataFileArchives);
+            mAllocator       = allocator;
+            mNumArchives     = maxNumDataFileArchives;
+            mArchives        = g_allocate_array_and_clear<archivefile_t*>(allocator, maxNumDataFileArchives);
+            mArchiveSections = g_allocate_array_and_clear<archive_t::section_t*>(allocator, maxNumDataFileArchives);
+            mDataFilePtrs    = g_allocate_array_and_clear<void**>(allocator, maxNumDataFileArchives);
         }
 
-        void archive_t::imp_t::teardown()
+        void archive_imp_t::teardown()
         {
+            for (s32 i = 0; i < mNumDataUnits; ++i)
+            {
+                if (mDataUnitPtrs[i] != nullptr)
+                {
+                    g_deallocate(mAllocator, mDataUnitPtrs[i]);
+                    mDataUnitPtrs[i] = nullptr;
+                }
+            }
+
             for (s32 i = 0; i < mNumArchives; ++i)
             {
                 if (mArchives[i] != nullptr)
@@ -82,12 +144,34 @@ namespace ncore
                     g_deallocate(mAllocator, mArchives[i]);
                     mArchives[i] = nullptr;
                 }
+
+                archive_t::section_t* section = mArchiveSections[i];
+                if (section != nullptr)
+                {
+                    for (s32 j = 0; j < section->m_ItemCount; ++j)
+                    {
+                        if (mDataFilePtrs[i][j] != nullptr)
+                        {
+                            g_deallocate(mAllocator, mDataFilePtrs[i][j]);
+                            mDataFilePtrs[i][j] = nullptr;
+                        }
+                    }
+                    mArchiveSections[i] = nullptr;
+                }
             }
+
             g_deallocate(mAllocator, mArchives);
-            mAllocator = nullptr;
+            g_deallocate(mAllocator, mArchiveSections);
+            g_deallocate(mAllocator, mDataFilePtrs);
+            g_deallocate(mAllocator, mDataUnitPtrs);
+
+            mArchives        = nullptr;
+            mArchiveSections = nullptr;
+            mDataFilePtrs    = nullptr;
+            mDataUnitPtrs    = nullptr;
         }
 
-        bool archive_t::imp_t::exists(fileid_t id) const
+        bool archive_imp_t::exists(fileid_t id) const
         {
             if (id.getArchiveIndex() < mNumArchives)
             {
@@ -97,7 +181,7 @@ namespace ncore
             return false;
         }
 
-        archive_t::file_t const* archive_t::imp_t::fileitem(fileid_t id) const
+        archive_t::file_t const* archive_imp_t::fileitem(fileid_t id) const
         {
             if (id.getArchiveIndex() < mNumArchives)
             {
@@ -107,7 +191,7 @@ namespace ncore
             return nullptr;
         }
 
-        string_t archive_t::imp_t::filename(fileid_t id) const
+        string_t archive_imp_t::filename(fileid_t id) const
         {
             if (id.getArchiveIndex() < mNumArchives)
             {
@@ -117,30 +201,121 @@ namespace ncore
             return string_t();
         }
 
-        s64 archive_t::imp_t::v_fileRead(fileid_t id, s32 offset, s32 size, void* destination) const
+        void* archive_imp_t::v_get_datafile_ptr(fileid_t fileid)
         {
-            if (id.getArchiveIndex() < mNumArchives)
+            if (fileid.getArchiveIndex() < mNumArchives)
             {
-                archivefile_t* datafile = mArchives[id.getArchiveIndex()];
-                return datafile != nullptr ? datafile->fileRead(id, offset, size, destination) : 0;
-            }
-            return 0;
-        }
-
-        void* archive_t::imp_t::v_fileRead(fileid_t id, alloc_t* allocator) const
-        {
-            if (id.getArchiveIndex() < mNumArchives)
-            {
-                archivefile_t*           datafile = mArchives[id.getArchiveIndex()];
-                archive_t::file_t const* entry    = datafile != nullptr ? datafile->file(id) : nullptr;
-                if (entry != nullptr)
+                archive_t::section_t const* section = mArchiveSections[fileid.getArchiveIndex()];
+                if (section != nullptr && fileid.getFileIndex() < section->m_ItemCount)
                 {
-                    u8* data = g_allocate_array<byte>(allocator, entry->getFileSize());
-                    datafile->fileRead(id, 0, entry->getFileSize(), data);
-                    return data;
+                    void** archiveDataPtrs = mDataFilePtrs[fileid.getArchiveIndex()];
+                    if (archiveDataPtrs != nullptr)
+                    {
+                        return archiveDataPtrs[fileid.getArchiveIndex()];
+                    }
                 }
             }
             return nullptr;
+        }
+
+        void* archive_imp_t::v_get_dataunit_ptr(u32 dataunit_index)
+        {
+            if (dataunit_index < mNumDataUnits)
+            {
+                return mDataUnitPtrs[dataunit_index];
+            }
+            return nullptr;
+        }
+
+        void* archive_imp_t::v_load_datafile(fileid_t fileid)
+        {
+            if (fileid.getArchiveIndex() < mNumArchives)
+            {
+                archive_t::section_t const* section = mArchiveSections[fileid.getArchiveIndex()];
+                if (section != nullptr && fileid.getFileIndex() < section->m_ItemCount)
+                {
+                    void** archiveDataPtrs    = mDataFilePtrs[fileid.getArchiveIndex()];
+                    void*& archiveDataFilePtr = archiveDataPtrs[fileid.getFileIndex()];
+                    if (archiveDataFilePtr == nullptr)
+                    {
+                        archive_t::file_t const* files = (archive_t::file_t const*)section->m_ItemArray;
+                        archive_t::file_t const* entry = &files[fileid.getFileIndex()];
+                        u8*                      data  = g_allocate_array<byte>(mAllocator, entry->getFileSize());
+
+                        archivefile_t* dataArchive = mArchives[fileid.getArchiveIndex()];
+                        dataArchive->fileRead(fileid, 0, entry->getFileSize(), data);
+
+                        archiveDataFilePtr = data;
+                    }
+                    return archiveDataFilePtr;
+                }
+            }
+            return nullptr;
+        }
+
+        void* archive_imp_t::v_load_dataunit(u32 dataunit_index)
+        {
+            fileid_t fileid(0, dataunit_index);
+            if (fileid.getArchiveIndex() < mNumArchives)
+            {
+                archive_t::section_t const* section = mArchiveSections[fileid.getArchiveIndex()];
+                if (section != nullptr && fileid.getFileIndex() < section->m_ItemCount)
+                {
+                    void*& dataUnitPtr = mDataUnitPtrs[fileid.getFileIndex()];
+                    if (dataUnitPtr == nullptr)
+                    {
+                        archive_t::file_t const* files = (archive_t::file_t const*)section->m_ItemArray;
+                        archive_t::file_t const* entry = &files[fileid.getFileIndex()];
+                        u8*                      data  = g_allocate_array<byte>(mAllocator, entry->getFileSize());
+
+                        archivefile_t* dataArchive = mArchives[fileid.getArchiveIndex()];
+                        dataArchive->fileRead(fileid, 0, entry->getFileSize(), data);
+
+                        dataUnitPtr = data;
+                    }
+                    return dataUnitPtr;
+                }
+            }
+            return nullptr;
+        }
+
+        void archive_imp_t::v_unload_datafile(fileid_t fileid)
+        {
+            if (fileid.getArchiveIndex() < mNumArchives)
+            {
+                archive_t::section_t const* section = mArchiveSections[fileid.getArchiveIndex()];
+                if (section != nullptr && fileid.getFileIndex() < section->m_ItemCount)
+                {
+                    void** archiveDataPtrs = mDataFilePtrs[fileid.getArchiveIndex()];
+                    if (archiveDataPtrs != nullptr)
+                    {
+                        void*& archiveDataFilePtr = archiveDataPtrs[fileid.getFileIndex()];
+                        if (archiveDataFilePtr != nullptr)
+                        {
+                            g_deallocate(mAllocator, archiveDataFilePtr);
+                            archiveDataFilePtr = nullptr;
+                        }
+                    }
+                }
+            }
+        }
+
+        void archive_imp_t::v_unload_dataunit(u32 dataunit_index)
+        {
+            fileid_t fileid(0, dataunit_index);
+            if (fileid.getArchiveIndex() < mNumArchives)
+            {
+                archive_t::section_t const* section = mArchiveSections[fileid.getArchiveIndex()];
+                if (section != nullptr && fileid.getFileIndex() < section->m_ItemCount)
+                {
+                    void*& dataUnitPtr = mDataUnitPtrs[fileid.getFileIndex()];
+                    if (dataUnitPtr != nullptr)
+                    {
+                        g_deallocate(mAllocator, dataUnitPtr);
+                        dataUnitPtr = nullptr;
+                    }
+                }
+            }
         }
 
         // TOC
@@ -248,22 +423,6 @@ namespace ncore
             mGDA = nullptr;
         }
 
-        static void* s_read_file(const char* filename, alloc_t* allocator, s64* fileSize)
-        {
-            nfile::file_handle_t fd = nfile::file_open(filename, nfile::file_mode_t::FILE_MODE_READ);
-            if (fd.isValid())
-            {
-                s64   size = nfile::file_size(fd);
-                void* data = g_allocate_array<byte>(allocator, size);
-                nfile::file_read(fd, (u8*)data, (u32)size);
-                nfile::file_close(fd);
-                if (fileSize != nullptr)
-                    *fileSize = size;
-                return data;
-            }
-            return nullptr;
-        }
-
         s32 archivefile_t::open(alloc_t* allocator, const char* archiveFilename, const char* tocFilename, const char* filenameDbFilename, const char* hashDbFilename)
         {
             close(allocator);
@@ -322,25 +481,37 @@ namespace ncore
         // ------------------------------------------------------------------------------------------------
         // ------- Archive Implementation -----------------------------------------------------------------
         // ------------------------------------------------------------------------------------------------
+        archive_t*            archive_t::s_instance = nullptr;
+        static archive_imp_t* s_imp                 = nullptr;
 
         void archive_t::init(alloc_t* allocator, s32 maxNumDataFileArchives)
         {
-            mImp = g_allocate<archive_t::imp_t>(allocator);
-            mImp->setup(allocator, maxNumDataFileArchives);
+            s_imp = g_allocate<archive_imp_t>(allocator);
+            s_imp->setup(allocator, maxNumDataFileArchives);
         }
 
         void archive_t::teardown()
         {
-            alloc_t* allocator = mImp->mAllocator;
-            mImp->teardown();
-            g_deallocate(allocator, mImp);
-            mImp = nullptr;
+            alloc_t* allocator = s_imp->mAllocator;
+            s_imp->teardown();
+            g_deallocate(allocator, s_imp);
+            s_imp = nullptr;
         }
 
-        bool                     archive_t::exists(fileid_t id) const { return mImp->exists(id); }
-        archive_t::file_t const* archive_t::fileitem(fileid_t id) const { return mImp->fileitem(id); }
-        string_t                 archive_t::filename(fileid_t id) const { return mImp->filename(id); }
-        archive_loader_t*        archive_t::loader() const { return mImp; }
+        bool                     archive_t::exists(fileid_t id) const { return s_imp->exists(id); }
+        archive_t::file_t const* archive_t::fileitem(fileid_t id) const { return s_imp->fileitem(id); }
+        string_t                 archive_t::filename(fileid_t id) const { return s_imp->filename(id); }
+        archive_loader_t*        archive_t::loader() const { return s_imp; }
+
+        void archive_t::s_setup(alloc_t* allocator, s32 maxNumArchives)
+        {
+            // todo ...
+        }
+
+        void archive_t::s_teardown()
+        {
+            // todo ...
+        }
 
     }  // namespace charon
 }  // namespace ncore
