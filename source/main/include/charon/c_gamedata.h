@@ -18,6 +18,7 @@ namespace ncore
         struct texture_t;
         struct font_t;
         struct curve_t;
+        struct archive_loader_t;
 
         namespace enums
         {

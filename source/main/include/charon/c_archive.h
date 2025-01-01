@@ -30,8 +30,8 @@ namespace ncore
         class archive_loader_t
         {
         public:
-            void load_datafile(fileid_t fileid) { v_load_datafile(fileid); }
-            void load_dataunit(u32 dataunit_index) { v_load_dataunit(dataunit_index); }
+            void* load_datafile(fileid_t fileid) { return v_load_datafile(fileid); }
+            void* load_dataunit(u32 dataunit_index) { return v_load_dataunit(dataunit_index); }
 
             template <typename T>
             void* get_datafile_ptr(fileid_t fileid)
@@ -87,11 +87,16 @@ namespace ncore
 
             struct section_t
             {
-                u32         m_ArchiveIndex;
-                u32         m_ArchiveOffset;
-                u32         m_Dummy;
-                u32         m_ItemCount;
-                void const* m_ItemArray;
+                u32 m_ArchiveIndex;
+                u32 m_ArchiveOffset;
+                u32 m_ItemArrayCount;
+                u32 m_ItemArrayOffset;
+
+                template <typename T>
+                inline T const* getItemArray() const
+                {
+                    return (T const*)((byte*)this + m_ItemArrayOffset);
+                }
             };
 
             void              init(alloc_t* allocator, s32 maxNumArchives);  // Initialize

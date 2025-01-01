@@ -148,7 +148,7 @@ namespace ncore
                 archive_t::section_t* section = mArchiveSections[i];
                 if (section != nullptr)
                 {
-                    for (s32 j = 0; j < section->m_ItemCount; ++j)
+                    for (s32 j = 0; j < section->m_ItemArrayCount; ++j)
                     {
                         if (mDataFilePtrs[i][j] != nullptr)
                         {
@@ -206,7 +206,7 @@ namespace ncore
             if (fileid.getArchiveIndex() < mNumArchives)
             {
                 archive_t::section_t const* section = mArchiveSections[fileid.getArchiveIndex()];
-                if (section != nullptr && fileid.getFileIndex() < section->m_ItemCount)
+                if (section != nullptr && fileid.getFileIndex() < section->m_ItemArrayCount)
                 {
                     void** archiveDataPtrs = mDataFilePtrs[fileid.getArchiveIndex()];
                     if (archiveDataPtrs != nullptr)
@@ -232,13 +232,13 @@ namespace ncore
             if (fileid.getArchiveIndex() < mNumArchives)
             {
                 archive_t::section_t const* section = mArchiveSections[fileid.getArchiveIndex()];
-                if (section != nullptr && fileid.getFileIndex() < section->m_ItemCount)
+                if (section != nullptr && fileid.getFileIndex() < section->m_ItemArrayCount)
                 {
                     void** archiveDataPtrs    = mDataFilePtrs[fileid.getArchiveIndex()];
                     void*& archiveDataFilePtr = archiveDataPtrs[fileid.getFileIndex()];
                     if (archiveDataFilePtr == nullptr)
                     {
-                        archive_t::file_t const* files = (archive_t::file_t const*)section->m_ItemArray;
+                        archive_t::file_t const* files = section->getItemArray<archive_t::file_t>();
                         archive_t::file_t const* entry = &files[fileid.getFileIndex()];
                         u8*                      data  = g_allocate_array<byte>(mAllocator, entry->getFileSize());
 
@@ -259,12 +259,12 @@ namespace ncore
             if (fileid.getArchiveIndex() < mNumArchives)
             {
                 archive_t::section_t const* section = mArchiveSections[fileid.getArchiveIndex()];
-                if (section != nullptr && fileid.getFileIndex() < section->m_ItemCount)
+                if (section != nullptr && fileid.getFileIndex() < section->m_ItemArrayCount)
                 {
                     void*& dataUnitPtr = mDataUnitPtrs[fileid.getFileIndex()];
                     if (dataUnitPtr == nullptr)
                     {
-                        archive_t::file_t const* files = (archive_t::file_t const*)section->m_ItemArray;
+                        archive_t::file_t const* files = (archive_t::file_t const*)section->getItemArray<archive_t::file_t>();
                         archive_t::file_t const* entry = &files[fileid.getFileIndex()];
                         u8*                      data  = g_allocate_array<byte>(mAllocator, entry->getFileSize());
 
@@ -284,7 +284,7 @@ namespace ncore
             if (fileid.getArchiveIndex() < mNumArchives)
             {
                 archive_t::section_t const* section = mArchiveSections[fileid.getArchiveIndex()];
-                if (section != nullptr && fileid.getFileIndex() < section->m_ItemCount)
+                if (section != nullptr && fileid.getFileIndex() < section->m_ItemArrayCount)
                 {
                     void** archiveDataPtrs = mDataFilePtrs[fileid.getArchiveIndex()];
                     if (archiveDataPtrs != nullptr)
@@ -306,7 +306,7 @@ namespace ncore
             if (fileid.getArchiveIndex() < mNumArchives)
             {
                 archive_t::section_t const* section = mArchiveSections[fileid.getArchiveIndex()];
-                if (section != nullptr && fileid.getFileIndex() < section->m_ItemCount)
+                if (section != nullptr && fileid.getFileIndex() < section->m_ItemArrayCount)
                 {
                     void*& dataUnitPtr = mDataUnitPtrs[fileid.getFileIndex()];
                     if (dataUnitPtr != nullptr)
@@ -333,24 +333,22 @@ namespace ncore
         };
 
         static archive_t::file_t const    s_invalidFileEntry = {0, 0};
-        static archive_t::section_t const s_invalidSection   = {0, 0, 0, 0, &s_invalidFileEntry};
+        static archive_t::section_t const s_invalidSection   = {0, 0, 0, 0};
 
-        archive_t::section_t const* toc_t::getSection(u32 index) const
+        archive_t::section_t const* toc_t::getSection(u32 archiveIndex) const
         {
-            if (index < mNumSections)
-            {
-                archive_t::section_t const* sections = (archive_t::section_t const*)((byte*)this + sizeof(u32));
-                return &sections[index];
-            }
-            return &s_invalidSection;
+            u32 const i = (mNumSections == 1) ? 0 : archiveIndex;
+            if (i >= mNumSections)
+                return &s_invalidSection;
+            archive_t::section_t const* sections = (archive_t::section_t const*)((byte*)this + sizeof(u32));
+            return &sections[i];
         }
 
         archive_t::file_t const* toc_t::getFileItem(fileid_t id) const
         {
-            const u32                   sectionIndex = id.getArchiveIndex();
-            archive_t::section_t const* section      = getSection(sectionIndex);
-            archive_t::file_t const*    itemArray    = (archive_t::file_t const*)section->m_ItemArray;
-            return (id.getFileIndex() < section->m_ItemCount) ? &itemArray[id.getFileIndex()] : &s_invalidFileEntry;
+            archive_t::section_t const* section   = getSection(id.getArchiveIndex());
+            archive_t::file_t const*    itemArray = section->getItemArray<archive_t::file_t>();
+            return (id.getFileIndex() < section->m_ItemArrayCount) ? &itemArray[id.getFileIndex()] : &s_invalidFileEntry;
         }
 
         struct gda_t
@@ -366,55 +364,64 @@ namespace ncore
         // End
         struct fdb_t
         {
-            string_t getFilename(fileid_t id) const;
-            u32      mNumSections;
+            string_t                    getFilename(fileid_t id) const;
+            archive_t::section_t const* getSection(u32 index) const;
+            u32                         mNumSections;
         };
+
+        archive_t::section_t const* fdb_t::getSection(u32 archiveIndex) const
+        {
+            u32 const i = (mNumSections == 1) ? 0 : archiveIndex;
+            if (i >= mNumSections)
+                return &s_invalidSection;
+            archive_t::section_t const* sections = (archive_t::section_t const*)((byte*)this + sizeof(u32));
+            return &sections[i];
+        }
 
         string_t fdb_t::getFilename(fileid_t id) const
         {
-            u32 const             archiveIndex       = (mNumSections == 1) ? 0 : id.getArchiveIndex();
-            u32 const*            sectionOffsetArray = (u32*)((byte*)this + sizeof(u32));
-            u32 const             sectionOffset      = sectionOffsetArray[archiveIndex];
-            archive_t::section_t* section            = (archive_t::section_t*)((byte*)this + sectionOffset);
-            if (id.getFileIndex() < section->m_ItemCount)
-            {
-                u32 const* filenameOffsetArray = (u32 const*)section->m_ItemArray;
-                u32 const  filenameOffset      = filenameOffsetArray[id.getFileIndex()];
-                u32 const* filename            = (u32*)((byte*)this + filenameOffset);
-                u32 const  numBytes            = filename[0];
-                u32 const  numRunes            = filename[1];
-                return string_t(numBytes, numRunes, (const char*)&filename[2]);
-            }
-            return string_t();
+            archive_t::section_t const* section = getSection(id.getArchiveIndex());
+            if (id.getFileIndex() >= section->m_ItemArrayCount)
+                return string_t();
+
+            u32 const* filenameOffsetArray = section->getItemArray<u32>();
+            u32 const  filenameOffset      = filenameOffsetArray[id.getFileIndex()];
+            u32 const* filenameItem        = (u32*)((byte*)this + filenameOffset);
+            return string_t(filenameItem[0], filenameItem[1], (const char*)&filenameItem[2]);
         }
 
         // HDB is a file containing all the hash values of the files in the datafile
         //   Int32: NumSections
-        //   Array: SectionOffset[NumSections]
-        //   Section:
+        //   Array: Sections[NumSections]
+        //   Array:
         //     Array: u64[NumFiles]
         //   End
         // End
         struct hdb_t
         {
-            u64 getHash(fileid_t id) const;
-            u32 mNumSections;
+            u64                         getHash(fileid_t id) const;
+            archive_t::section_t const* getSection(u32 index) const;
+            u32                         mNumSections;
         };
+
+        archive_t::section_t const* hdb_t::getSection(u32 archiveIndex) const
+        {
+            u32 const i = (mNumSections == 1) ? 0 : archiveIndex;
+            if (i >= mNumSections)
+                return &s_invalidSection;
+            archive_t::section_t const* sections = (archive_t::section_t const*)((byte*)this + sizeof(u32));
+            return &sections[i];
+        }
 
         u64 hdb_t::getHash(fileid_t id) const
         {
-            u32 const                   archiveIndex = (mNumSections == 1) ? 0 : id.getArchiveIndex();
-            archive_t::section_t const* sections     = (archive_t::section_t*)((byte*)this + sizeof(u32));
-            archive_t::section_t const* section      = &sections[archiveIndex];
-            if (id.getFileIndex() < section->m_ItemCount)
-            {
-                u64 const* hashArray = (u64 const*)section->m_ItemArray;
-                return hashArray[id.getFileIndex()];
-            }
-        }
+            archive_t::section_t const* section = getSection(id.getArchiveIndex());
+            if (id.getFileIndex() >= section->m_ItemArrayCount)
+                return 0;
 
-        // The .bfa file containing all the files, uses the .mft file to obtain the
-        // offset in the .bfa file for a file.
+            u64 const* hashArray = section->getItemArray<u64>();
+            return hashArray[id.getFileIndex()];
+        }
 
         archivefile_t::archivefile_t()
         {
