@@ -27,45 +27,6 @@ namespace ncore
             string_t m_Hdb;
         };
 
-        class archive_loader_t
-        {
-        public:
-            void* load_datafile(fileid_t fileid) { return v_load_datafile(fileid); }
-            void* load_dataunit(u32 dataunit_index) { return v_load_dataunit(dataunit_index); }
-
-            template <typename T>
-            void* get_datafile_ptr(fileid_t fileid)
-            {
-                return (T*)v_get_datafile_ptr(fileid);
-            }
-
-            template <typename T>
-            void* get_dataunit_ptr(u32 dataunit_index)
-            {
-                return (T*)v_get_dataunit_ptr(dataunit_index);
-            }
-
-            template <typename T>
-            void unload_datafile(T*& object)
-            {
-                v_unload_datafile(object);
-            }
-
-            template <typename T>
-            void unload_dataunit(T*& object)
-            {
-                v_unload_dataunit(object);
-            }
-
-        protected:
-            virtual void* v_get_datafile_ptr(fileid_t fileid)    = 0;
-            virtual void* v_get_dataunit_ptr(u32 dataunit_index) = 0;
-            virtual void* v_load_datafile(fileid_t fileid)       = 0;
-            virtual void* v_load_dataunit(u32 dataunit_index)    = 0;
-            virtual void  v_unload_datafile(fileid_t fileid)     = 0;
-            virtual void  v_unload_dataunit(u32 dataunit_index)  = 0;
-        };
-
         class archive_t
         {
         public:
@@ -99,8 +60,6 @@ namespace ncore
                 }
             };
 
-            void              init(alloc_t* allocator, s32 maxNumArchives);  // Initialize
-            void              teardown();                                    // Shutdown
             bool              exists(fileid_t id) const;                     // Return True if file-id exists
             file_t const*     fileitem(fileid_t id) const;                   // Return Item associated with file id
             string_t          filename(fileid_t id) const;                   // Return Filename associated with file id

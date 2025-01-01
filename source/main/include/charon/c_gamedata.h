@@ -18,7 +18,6 @@ namespace ncore
         struct texture_t;
         struct font_t;
         struct curve_t;
-        struct archive_loader_t;
 
         namespace enums
         {
@@ -76,6 +75,47 @@ namespace ncore
         struct carconfiguration_t;
         struct modeldatafile_t;
 
+        class archive_loader_t
+        {
+        public:
+            void* load_datafile(fileid_t fileid) { return v_load_datafile(fileid); }
+            void* load_dataunit(u32 dataunit_index) { return v_load_dataunit(dataunit_index); }
+
+            template <typename T>
+            void* get_datafile_ptr(fileid_t fileid)
+            {
+                return (T*)v_get_datafile_ptr(fileid);
+            }
+
+            template <typename T>
+            void* get_dataunit_ptr(u32 dataunit_index)
+            {
+                return (T*)v_get_dataunit_ptr(dataunit_index);
+            }
+
+            template <typename T>
+            void unload_datafile(T*& object)
+            {
+                v_unload_datafile(object);
+            }
+
+            template <typename T>
+            void unload_dataunit(T*& object)
+            {
+                v_unload_dataunit(object);
+            }
+
+        protected:
+            virtual void* v_get_datafile_ptr(fileid_t fileid)    = 0;
+            virtual void* v_get_dataunit_ptr(u32 dataunit_index) = 0;
+            virtual void* v_load_datafile(fileid_t fileid)       = 0;
+            virtual void* v_load_dataunit(u32 dataunit_index)    = 0;
+            virtual void  v_unload_datafile(fileid_t fileid)     = 0;
+            virtual void  v_unload_dataunit(u32 dataunit_index)  = 0;
+        };
+
+        extern archive_loader_t* g_loader;
+
         template <class T>
         struct array_t
         {
@@ -119,8 +159,8 @@ namespace ncore
         template <typename T>
         struct dataunit_t
         {
-            T*   get() { return (T*)g_gamedata->get_dataunit_ptr(m_dataunit_index); }
-            void load(archive_loader_t& loader) { g_gamedata->load_dataunit(loader, m_dataunit_index); }
+            T*   get() { return g_loader->get_dataunit_ptr<T>(m_dataunit_index); }
+            void load() { g_loader->load_dataunit(m_dataunit_index); }
             u32  m_dataunit_index;
         };
 
@@ -214,8 +254,8 @@ namespace ncore
         template <typename T>
         struct datafile_t
         {
-            T*       get() { return (T*)g_gamedata->get_datafile_ptr(m_fileid); }
-            void     load(archive_loader_t& loader) { g_gamedata->load_datafile(loader, m_fileid); }
+            T*       get() { return g_loader->get_datafile_ptr<T>(m_fileid); }
+            void     load() { g_loader->load_datafile(m_fileid); }
             fileid_t m_fileid;
         };
 

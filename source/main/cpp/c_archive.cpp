@@ -235,6 +235,8 @@ namespace ncore
                 if (section != nullptr && fileid.getFileIndex() < section->m_ItemArrayCount)
                 {
                     void** archiveDataPtrs    = mDataFilePtrs[fileid.getArchiveIndex()];
+                    // TODO: the array of pointers might not exist yet
+
                     void*& archiveDataFilePtr = archiveDataPtrs[fileid.getFileIndex()];
                     if (archiveDataFilePtr == nullptr)
                     {
@@ -360,7 +362,7 @@ namespace ncore
         // FDB is a file/db containing all the filenames of the files in the datafile
         //   Int32: NumSections
         //   Array: Section[NumSections]
-        //   Array: {void*, NumBytes, Count}
+        //   Array: {NumBytes, Count, byte[]}
         // End
         struct fdb_t
         {
@@ -443,13 +445,9 @@ namespace ncore
                 mFDB = (fdb_t*)s_read_file(filenameDbFilename, allocator, nullptr);
                 mHDB = (hdb_t*)s_read_file(hashDbFilename, allocator, nullptr);
 #endif
+                return 0;
             }
-            else
-            {
-                return -1;
-            }
-
-            return 0;
+            return -1;
         }
 
         void archivefile_t::close(alloc_t* allocator)
@@ -490,20 +488,7 @@ namespace ncore
         // ------------------------------------------------------------------------------------------------
         archive_t*            archive_t::s_instance = nullptr;
         static archive_imp_t* s_imp                 = nullptr;
-
-        void archive_t::init(alloc_t* allocator, s32 maxNumDataFileArchives)
-        {
-            s_imp = g_allocate<archive_imp_t>(allocator);
-            s_imp->setup(allocator, maxNumDataFileArchives);
-        }
-
-        void archive_t::teardown()
-        {
-            alloc_t* allocator = s_imp->mAllocator;
-            s_imp->teardown();
-            g_deallocate(allocator, s_imp);
-            s_imp = nullptr;
-        }
+        archive_loader_t*     g_loader              = nullptr;
 
         bool                     archive_t::exists(fileid_t id) const { return s_imp->exists(id); }
         archive_t::file_t const* archive_t::fileitem(fileid_t id) const { return s_imp->fileitem(id); }
@@ -512,12 +497,31 @@ namespace ncore
 
         void archive_t::s_setup(alloc_t* allocator, s32 maxNumArchives)
         {
-            // todo ...
+            if (s_instance == nullptr)
+            {
+                s_instance = g_allocate<archive_t>(allocator);
+
+                s_imp = g_allocate<archive_imp_t>(allocator);
+                s_imp->setup(allocator, maxNumArchives);
+
+                g_loader = s_imp;
+            }
         }
 
         void archive_t::s_teardown()
         {
-            // todo ...
+            if (s_instance != nullptr)
+            {
+                alloc_t* allocator = s_imp->mAllocator;
+                s_imp->teardown();
+
+                g_deallocate(allocator, s_imp);
+                s_imp    = nullptr;
+                g_loader = nullptr;
+
+                g_deallocate(allocator, s_instance);
+                s_instance = nullptr;
+            }
         }
 
     }  // namespace charon
