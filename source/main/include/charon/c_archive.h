@@ -5,14 +5,15 @@
 #    pragma once
 #endif
 
-#include "charon/c_gamedata.h"
-
 namespace ncore
 {
     class alloc_t;
 
     namespace charon
     {
+        struct archive_loader_t;
+        struct fileid_t;
+
         struct archive_info_t
         {
             inline string_t const& getArchiveData() const { return m_Data; }
@@ -60,10 +61,10 @@ namespace ncore
                 }
             };
 
-            bool              exists(fileid_t id) const;                     // Return True if file-id exists
-            file_t const*     fileitem(fileid_t id) const;                   // Return Item associated with file id
-            string_t          filename(fileid_t id) const;                   // Return Filename associated with file id
-            archive_loader_t* loader() const;                                // Get the loader interface
+            bool              exists(fileid_t const& id) const;    // Return True if file-id exists
+            file_t const*     fileitem(fileid_t const& id) const;  // Return Item associated with file id
+            string_t          filename(fileid_t const& id) const;  // Return Filename associated with file id
+            archive_loader_t* loader() const;                      // Get the loader interface
         };
 
     }  // namespace charon

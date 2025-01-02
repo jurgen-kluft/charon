@@ -490,9 +490,9 @@ namespace ncore
         static archive_imp_t* s_imp                 = nullptr;
         archive_loader_t*     g_loader              = nullptr;
 
-        bool                     archive_t::exists(fileid_t id) const { return s_imp->exists(id); }
-        archive_t::file_t const* archive_t::fileitem(fileid_t id) const { return s_imp->fileitem(id); }
-        string_t                 archive_t::filename(fileid_t id) const { return s_imp->filename(id); }
+        bool                     archive_t::exists(fileid_t const& id) const { return s_imp->exists(id); }
+        archive_t::file_t const* archive_t::fileitem(fileid_t const& id) const { return s_imp->fileitem(id); }
+        string_t                 archive_t::filename(fileid_t const& id) const { return s_imp->filename(id); }
         archive_loader_t*        archive_t::loader() const { return s_imp; }
 
         void archive_t::s_setup(alloc_t* allocator, s32 maxNumArchives)
