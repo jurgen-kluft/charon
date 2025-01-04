@@ -4,8 +4,7 @@
 #include "cbase/c_printf.h"
 
 #include "charon/c_localization.h"
-#include "charon/c_bigfile.h"
-#include "charon/c_object.h"
+#include "charon/c_archive.h"
 
 namespace ncore
 {
@@ -16,7 +15,7 @@ namespace ncore
     {
     }
 
-    void localization_t::init(charon::languages_t* languages, charon::bigfiles_t* bfm)
+    void localization_t::init(charon::languages_t* languages, charon::archive_t* ar)
     {
         mLanguages = languages;
 
@@ -26,19 +25,20 @@ namespace ncore
         }
     }
 
-    void localization_t::loadDefaultLanguage(charon::bigfiles_t* bfm)
+    void localization_t::loadDefaultLanguage(charon::archive_t* ar)
     {
         mCurrentLanguage = mLanguages->getDefaultLanguage();
-        loadLanguage(mLanguageStrTables[mCurrentLanguage], mCurrentLanguage, bfm);
+        loadLanguage(mLanguageStrTables[mCurrentLanguage], mCurrentLanguage, ar);
     }
 
     charon::enums::ELanguage localization_t::getCurrentLanguage() const { return mCurrentLanguage; }
 
-    void localization_t::loadLanguage(charon::strtable_t*& language, charon::enums::ELanguage language_id, charon::bigfiles_t* bf)
+    void localization_t::loadLanguage(charon::strtable_t*& language, charon::enums::ELanguage language_id, charon::archive_t* bf)
     {
         charon::datafile_t<charon::strtable_t> lan = mLanguages->getLanguageArray()[language_id];
-        charon::bigfile_reader_t* reader = bf->reader();
-        g_LoadObject(lan.m_fileid, language, reader, mAllocator);
+        charon::archive_loader_t* loader = bf->loader();
+        void* language_mem = loader->load_datafile(lan.m_fileid);
+        language = new (language_mem) charon::strtable_t();
     }
 
     void localization_t::exit()

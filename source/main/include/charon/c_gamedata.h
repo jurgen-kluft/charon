@@ -75,6 +75,23 @@ namespace ncore
         struct carconfiguration_t;
         struct modeldatafile_t;
 
+        struct fileid_t
+        {
+            explicit fileid_t(u32 archiveIndex, u32 fileIndex)
+                : archiveIndex(archiveIndex)
+                , fileIndex(fileIndex)
+            {
+            }
+            inline u32 getArchiveIndex() const { return archiveIndex; }
+            inline u32 getFileIndex() const { return fileIndex; }
+
+        private:
+            u32 archiveIndex;
+            u32 fileIndex;
+        };
+
+        const fileid_t INVALID_FILEID((u32)-1, (u32)-1);
+
         class archive_loader_t
         {
         public:
@@ -167,27 +184,10 @@ namespace ncore
         struct dataunit_header_t
         {
             u32 m_patch_offset;
-            u32 m_patch_count;
+            s32 m_patch_count;
             u32 m_dummy0;
             u32 m_dummy1;
         };
-
-        struct fileid_t
-        {
-            explicit fileid_t(u32 archiveIndex, u32 fileIndex)
-                : archiveIndex(archiveIndex)
-                , fileIndex(fileIndex)
-            {
-            }
-            inline u32 getArchiveIndex() const { return archiveIndex; }
-            inline u32 getFileIndex() const { return fileIndex; }
-
-        private:
-            u32 archiveIndex;
-            u32 fileIndex;
-        };
-
-        const fileid_t INVALID_FILEID((u32)-1, (u32)-1);
 
         struct locstr_t
         {
@@ -229,6 +229,7 @@ namespace ncore
 
         struct strtable_t
         {
+            inline strtable_t() {}
             inline strtable_t(u32 numStrings, u32 const* byteLengths, u32 const* charLengths, u32 const* offsets, const char* strings)
                 : mMagic(0x36DF5DE5)
                 , mNumStrings(numStrings)
@@ -240,7 +241,7 @@ namespace ncore
             }
             inline s32      size() const { return mNumStrings; }
             inline string_t str(u32 index) const { return string_t(mByteLengths[index], mCharLengths[index], mStrings + mOffsets[index]); }
-
+            DCORE_CLASS_PLACEMENT_NEW_DELETE
         protected:
             u32         mMagic;  // 'STRT'
             u32         mNumStrings;

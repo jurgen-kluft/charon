@@ -5,34 +5,21 @@
 #    pragma once
 #endif
 
+#include "charon/c_gamedata.h"
+
 namespace ncore
 {
     class alloc_t;
 
     namespace charon
     {
-        struct archive_loader_t;
-        struct fileid_t;
-
-        struct archive_info_t
-        {
-            inline string_t const& getArchiveData() const { return m_Data; }
-            inline string_t const& getArchiveToc() const { return m_Toc; }
-            inline string_t const& getArchiveFdb() const { return m_Fdb; }
-            inline string_t const& getArchiveHdb() const { return m_Hdb; }
-
-        private:
-            string_t m_Data;
-            string_t m_Toc;
-            string_t m_Fdb;
-            string_t m_Hdb;
-        };
+        u8* g_patch(dataunit_header_t* data);
 
         class archive_t
         {
         public:
             static archive_t* s_instance;
-            static void       s_setup(alloc_t* allocator, s32 maxNumArchives);
+            static void       s_setup(alloc_t* allocator, s32 maxNumDataUnits, s32 maxNumDataArchives);
             static void       s_teardown();
 
             struct file_t

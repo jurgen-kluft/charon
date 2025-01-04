@@ -3,8 +3,8 @@
 #include "cunittest/cunittest.h"
 #include "ccore/c_allocator.h"
 #include "cfile/c_file.h"
-#include "charon/c_object.h"
-#include "charon/c_bigfile.h"
+#include "charon/c_gamedata.h"
+#include "charon/c_archive.h"
 
 using namespace ncore;
 
@@ -25,10 +25,11 @@ UNITTEST_SUITE_BEGIN(gamedata)
             u8*                  data     = (u8*)Allocator->allocate(dataSize);
             nfile::file_read(fh, data, dataSize);
 
-            charon::gameroot_t* root = (charon::gameroot_t*)charon::g_PatchPointers(data);
+            charon::dataunit_header_t* dataUnit = (charon::dataunit_header_t*)data;
+            charon::gameroot_t* root = (charon::gameroot_t*)charon::g_patch(dataUnit);
 
-            charon::tracks_t*                    tracks = root->m_Tracks;
-            charon::datafile_t<charon::track_t>& track  = tracks->gettracks()[0];
+            charon::tracks_t const*                    tracks = root->getTracks();
+            charon::dataunit_t<charon::track_t> const& track  = tracks->getTracks()[0];
 
             Allocator->deallocate(data);
         }
