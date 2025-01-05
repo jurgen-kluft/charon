@@ -71,11 +71,11 @@ namespace ncore
 
     charon::string_t localization_t::getText(charon::locstr_t lstr) const
     {
-        if (lstr.getId() == charon::INVALID_LOCSTR.getId())
+        if (lstr.id == charon::INVALID_LOCSTR.id)
             return charon::string_t();
 
         charon::strtable_t const* language = mLanguageStrTables[mCurrentLanguage];
-        return language->str(lstr.getId());
+        return language->str(lstr);
     }
 
 }  // namespace ncore

@@ -192,16 +192,9 @@ namespace ncore
 
         struct locstr_t
         {
-            explicit locstr_t(u64 id)
-                : id(id)
-            {
-            }
-            inline u64 getId() const { return id; }
-
-        private:
-            u64 id;
+            s64 id;
         };
-        const locstr_t INVALID_LOCSTR((u64)-1);
+        const locstr_t INVALID_LOCSTR = {-1};
 
         // A standard string (ASCII, UTF-8)
         struct string_t
@@ -241,7 +234,7 @@ namespace ncore
             {
             }
             inline s32      size() const { return mNumStrings; }
-            inline string_t str(u32 index) const { return string_t(mByteLengths[index], mCharLengths[index], mStrings + mOffsets[index]); }
+            inline string_t str(locstr_t l) const { return string_t(mByteLengths[l.id], mCharLengths[l.id], mStrings + mOffsets[l.id]); }
             DCORE_CLASS_PLACEMENT_NEW_DELETE
         protected:
             u32         mMagic;  // 'STRT'
