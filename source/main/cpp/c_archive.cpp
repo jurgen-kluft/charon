@@ -105,8 +105,8 @@ namespace ncore
             void* v_get_dataunit_ptr(u32 dataunit_index) override;
             void* v_load_datafile(fileid_t fileid) override;
             void* v_load_dataunit(u32 dataunit_index) override;
-            void  v_unload_datafile(fileid_t fileid) override;
-            void  v_unload_dataunit(u32 dataunit_index) override;
+            void  v_unload_datafile(fileid_t fileid, void*& data) override;
+            void  v_unload_dataunit(u32 dataunit_index, void*& data) override;
 
             alloc_t*               mAllocator;
             s32                    mNumDataUnits;
@@ -277,7 +277,7 @@ namespace ncore
             return nullptr;
         }
 
-        void archive_imp_t::v_unload_datafile(fileid_t fileid)
+        void archive_imp_t::v_unload_datafile(fileid_t fileid, void*& data)
         {
             if (fileid.getArchiveIndex() < mNumArchives)
             {
@@ -290,14 +290,16 @@ namespace ncore
                         void*& archiveDataFilePtr = archiveDataPtrs[fileid.getFileIndex()];
                         if (archiveDataFilePtr != nullptr)
                         {
+                            ASSERT(archiveDataFilePtr == data);
                             g_deallocate(mAllocator, archiveDataFilePtr);
+                            data = nullptr;
                         }
                     }
                 }
             }
         }
 
-        void archive_imp_t::v_unload_dataunit(u32 dataunit_index)
+        void archive_imp_t::v_unload_dataunit(u32 dataunit_index, void*& data)
         {
             fileid_t fileid(0, dataunit_index);
             if (fileid.getArchiveIndex() < mNumArchives)
@@ -308,7 +310,9 @@ namespace ncore
                     dataunit_header_t*& dataUnitPtr = mDataUnitPtrs[fileid.getFileIndex()];
                     if (dataUnitPtr != nullptr)
                     {
+                        ASSERT(dataUnitPtr == (dataunit_header_t*)data);
                         g_deallocate(mAllocator, dataUnitPtr);
+                        data = nullptr;
                     }
                 }
             }

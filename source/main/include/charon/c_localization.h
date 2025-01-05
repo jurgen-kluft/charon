@@ -17,17 +17,19 @@ namespace ncore
     public:
         localization_t(alloc_t* allocator);
 
-        void init(charon::languages_t* languages, charon::archive_t* ar);
-        void exit();
+        void setup(charon::languages_t* languages, charon::archive_t* ar);
+        void teardown(charon::archive_t* ar);
 
-        void                     loadDefaultLanguage(charon::archive_t* ar);
         charon::enums::ELanguage getCurrentLanguage() const;
+        void                     setupLanguage(charon::enums::ELanguage language, charon::archive_t* ar);
+        void                     teardownLanguage(charon::enums::ELanguage language, charon::archive_t* ar);
 
         // UTF-8
-        const char* getText(charon::locstr_t lstr) const;
+        charon::string_t getText(charon::locstr_t lstr) const;
 
     private:
         void loadLanguage(charon::strtable_t*& language, charon::enums::ELanguage language_id, charon::archive_t* ar);
+        void unloadLanguages(charon::archive_t* ar);
 
         alloc_t*                   mAllocator;
         charon::languages_t const* mLanguages;

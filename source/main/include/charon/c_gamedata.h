@@ -111,24 +111,24 @@ namespace ncore
             }
 
             template <typename T>
-            void unload_datafile(T*& object)
+            void unload_datafile(fileid_t fileid, T*& object)
             {
-                v_unload_datafile(object);
+                v_unload_datafile(fileid, (void*&)object);
             }
 
             template <typename T>
-            void unload_dataunit(T*& object)
+            void unload_dataunit(u32 dataunit_index, T*& object)
             {
-                v_unload_dataunit(object);
+                v_unload_dataunit(dataunit_index, (void*&)object);
             }
 
         protected:
-            virtual void* v_get_datafile_ptr(fileid_t fileid)    = 0;
-            virtual void* v_get_dataunit_ptr(u32 dataunit_index) = 0;
-            virtual void* v_load_datafile(fileid_t fileid)       = 0;
-            virtual void* v_load_dataunit(u32 dataunit_index)    = 0;
-            virtual void  v_unload_datafile(fileid_t fileid)     = 0;
-            virtual void  v_unload_dataunit(u32 dataunit_index)  = 0;
+            virtual void* v_get_datafile_ptr(fileid_t fileid)                = 0;
+            virtual void* v_get_dataunit_ptr(u32 dataunit_index)             = 0;
+            virtual void* v_load_datafile(fileid_t fileid)                   = 0;
+            virtual void* v_load_dataunit(u32 dataunit_index)                = 0;
+            virtual void  v_unload_datafile(fileid_t fileid, void*& data)    = 0;
+            virtual void  v_unload_dataunit(u32 dataunit_index, void*& data) = 0;
         };
 
         extern archive_loader_t* g_loader;
@@ -176,9 +176,10 @@ namespace ncore
         template <typename T>
         struct dataunit_t
         {
-            T*   get() { return g_loader->get_dataunit_ptr<T>(m_dataunit_index); }
-            void load() { g_loader->load_dataunit(m_dataunit_index); }
-            u32  m_dataunit_index;
+            T*    get() { return g_loader->get_dataunit_ptr<T>(m_dataunit_index); }
+            void* load() { return g_loader->load_dataunit(m_dataunit_index); }
+            void  unload(void*& data) { g_loader->unload_dataunit(m_dataunit_index, data); }
+            u32   m_dataunit_index;
         };
 
         struct dataunit_header_t
@@ -255,8 +256,9 @@ namespace ncore
         template <typename T>
         struct datafile_t
         {
-            T*       get() { return g_loader->get_datafile_ptr<T>(m_fileid); }
-            void     load() { g_loader->load_datafile(m_fileid); }
+            T*       get() const { return g_loader->get_datafile_ptr<T>(m_fileid); }
+            void*    load() const { return g_loader->load_datafile(m_fileid); }
+            void     unload(T*& data) const { g_loader->unload_datafile(m_fileid, data); }
             fileid_t m_fileid;
         };
 
