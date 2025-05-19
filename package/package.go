@@ -31,14 +31,14 @@ func GetPackage() *denv.Package {
 	mainpkg.AddPackage(corepkg)
 
 	// 'charon' library
-	mainlib := denv.SetupDefaultCppLibProject(name, repo_path+name)
-	mainlib.Dependencies = append(mainlib.Dependencies, filepkg.GetMainLib())
-	mainlib.Dependencies = append(mainlib.Dependencies, basepkg.GetMainLib())
-	mainlib.Dependencies = append(mainlib.Dependencies, corepkg.GetMainLib())
+	mainlib := denv.SetupCppLibProject(name, repo_path+name)
+	mainlib.AddDependencies(filepkg.GetMainLib()...)
+	mainlib.AddDependencies(basepkg.GetMainLib()...)
+	mainlib.AddDependencies(corepkg.GetMainLib()...)
 
 	// 'charon' unittest project
 	maintest := denv.SetupDefaultCppTestProject(name+"_test", repo_path+name)
-	maintest.Dependencies = append(maintest.Dependencies, unittestpkg.GetMainLib())
+	maintest.AddDependencies(unittestpkg.GetMainLib()...)
 	maintest.Dependencies = append(maintest.Dependencies, mainlib)
 
 	mainpkg.AddMainLib(mainlib)
