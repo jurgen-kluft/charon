@@ -2,9 +2,9 @@ package charon
 
 import (
 	cbase "github.com/jurgen-kluft/cbase/package"
-	denv "github.com/jurgen-kluft/ccode/denv"
 	cfile "github.com/jurgen-kluft/cfile/package"
 	cunittest "github.com/jurgen-kluft/cunittest/package"
+	denv "github.com/jurgen-kluft/gide/denv"
 )
 
 const (
